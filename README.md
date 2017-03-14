@@ -49,3 +49,5 @@ Kanro 会输出运行信息，如果看到 `Http server listening on '9180'` 则
   "data": "Hello Kanro!"
 }
 ```
+## 其他介绍
+[Kanro - RESTful 后端框架（01）- 遇见 Kanro](http://blog.higan.me/kanro-restful-back-end-framework-1/)

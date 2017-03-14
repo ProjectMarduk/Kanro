@@ -1,0 +1,34 @@
+{
+    "entryPoint": {
+        "type": "RequestDiverter",
+        "name": "KanroRouter",
+        "shared": false,
+        "module": {
+            "name": "kanro",
+            "version": "*"
+        },
+        "/": {
+            "name": "BaseResponder",
+            "module": {
+                "name": "kanro.core",
+                "version": "*"
+            },
+            "type": "Responder",
+            "response": {
+                "status": 0,
+                "message": "Normal",
+                "data": "Hello Kanro!"
+            }
+        }
+    },
+    "globalExceptionHandlers": [
+        {
+            "type": "GlobalExceptionHandler",
+            "module": {
+                "name": "kanro.core",
+                "version": "*"
+            },
+            "name": "BaseGlobalExceptionHandler"
+        }
+    ]
+}

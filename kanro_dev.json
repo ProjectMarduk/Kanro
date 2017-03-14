@@ -1,0 +1,4 @@
+{
+    "port": 9180,
+    "registry": "http://localhost:4873"
+}

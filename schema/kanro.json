@@ -1,0 +1,16 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Config",
+    "description": "Kanro config",
+    "type": "object",
+    "properties": {
+        "registry": {
+            "type": "string"
+        },
+        "port": {
+            "type" :"number",
+            "description": "Server port",
+            "default" : 80
+        }
+    }
+}

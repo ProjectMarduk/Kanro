@@ -1,0 +1,10 @@
+[
+    {
+        "name": "kanro",
+        "version": "*"
+    },
+    {
+        "name": "kanro.core",
+        "version": "*"
+    }
+]

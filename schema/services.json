@@ -1,0 +1,88 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "Config",
+    "description": "Kanro config",
+    "type": "array",
+    "items": {
+        "type": "object",
+        "oneOf": [
+            {
+                "$ref": "#/definitions/service"
+            }
+        ]
+    },
+    "definitions": {
+        "module": {
+            "title": "Module",
+            "description": "A Kanro modules",
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of the module",
+                    "pattern": "^[a-z0-9@]([a-z0-9@/_\\.]{0,212}?)[a-z0-9]?$"
+                },
+                "version": {
+                    "type": "string",
+                    "description": "Version of the module",
+                    "pattern": "^([0-9]+\\.[0-9]+.[0-9]+(?:-[a-zA-Z0-9\\-\\.]+)?|\\*)$"
+                }
+            },
+            "required": [
+                "name",
+                "version"
+            ]
+        },
+        "service": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "object",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/module"
+                        }
+                    ]
+                },
+                "dependencies": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "oneOf": [
+                            {
+                                "$ref": "#/definitions/serviceDependencies"
+                            }
+                        ]
+                    }
+                }
+            },
+            "required": [
+                "name",
+                "module"
+            ]
+        },
+        "serviceDependencies": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "module": {
+                    "type": "object",
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/module"
+                        }
+                    ]
+                }
+            },
+            "required": [
+                "name",
+                "module"
+            ]
+        }
+    }
+}

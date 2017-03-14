@@ -1,0 +1,25 @@
+[
+    {
+        "name": "ModuleManager",
+        "module": {
+            "name": "kanro",
+            "version": "*"
+        }
+    },
+    {
+        "name": "ServiceManager",
+        "module": {
+            "name": "kanro",
+            "version": "*"
+        },
+        "dependencies": [
+            {
+                "name": "ModuleManager",
+                "module": {
+                    "name": "kanro",
+                    "version": "*"
+                }
+            }
+        ]
+    }
+]

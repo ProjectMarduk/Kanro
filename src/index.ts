@@ -642,6 +642,53 @@ export namespace Kanro {
                 }
             }
         }
+
+        export class MethodRouter extends KanroCore.Executor implements KanroCore.Core.IRequestDiverter {
+            async shunt(request: KanroCore.Core.IRequest, executors: KanroCore.Config.IExecutorConfig[]): Promise<KanroCore.Config.IExecutorConfig> {
+                let method = request.method.toUpperCase();
+
+                if(this.methods[method] != undefined){
+                    return this.methods[method];
+                }
+
+                throw new KanroCore.Exceptions.KanroMethodNotAllowedException();
+            }
+
+            type: KanroCore.Core.ExecutorType.RequestDiverter = KanroCore.Core.ExecutorType.RequestDiverter;
+            dependencies: { [name: string]: KanroCore.Core.IService; } = {};
+            name: string = "MethodRouter";
+
+            methods: { [method: string]: KanroCore.Config.IExecutorConfig } = {};
+
+            constructor(config: KanroCore.Config.IRequestDiverterConfig) {
+                super(config);
+
+                config.next = [];
+
+                for (var key in config) {
+                    switch (key.toUpperCase()) {
+                        case "OPTIONS":
+                        case "GET":
+                        case "HEAD":
+                        case "POST":
+                        case "PUT":
+                        case "DELETE":
+                        case "TRACE":
+                        case "CONNECT":
+                        case "PATCH":
+                            this.methods[key.toUpperCase()] = config[key];
+                            config.next.push(config[key]);
+                            break;
+                        default:
+                            if (key.startsWith("-")) {
+                                this.methods[key.slice(1).toUpperCase()] = config[key];
+                                config.next.push(config[key]);
+                            }
+                            break;
+                    }
+                }
+            }
+        }
     }
 
     export namespace Http {
@@ -1103,8 +1150,8 @@ export namespace Kanro {
         dependencies: { [name: string]: KanroCore.Core.IService; } = {};
         name: string = "KanroManager";
 
-        async reloadConfigs(configs: KanroCore.Config.IKanroConfigs) : Promise<void> {
-            if(App.current == undefined){
+        async reloadConfigs(configs: KanroCore.Config.IKanroConfigs): Promise<void> {
+            if (App.current == undefined) {
                 throw new Error("Kanro is not running");
             }
 
@@ -1374,6 +1421,8 @@ export namespace Kanro {
                     return this.context.moduleManager;
                 case "ServiceManager":
                     return this.context.serviceManager;
+                case "MethodRouter":
+                    return new Router.MethodRouter(<any>config);
             }
             return undefined;
         }
@@ -1383,7 +1432,8 @@ export namespace Kanro {
             this.executorInfos = {
                 KanroRouter: { type: KanroCore.Core.ExecutorType.RequestDiverter, name: "KanroRouter" },
                 ModuleManager: { type: KanroCore.Core.ExecutorType.Service, name: "ModuleManager" },
-                ServiceManager: { type: KanroCore.Core.ExecutorType.Service, name: "ServiceManager" }
+                ServiceManager: { type: KanroCore.Core.ExecutorType.Service, name: "ServiceManager" },
+                MethodRouter: { type: KanroCore.Core.ExecutorType.RequestDiverter, name: "MethodRouter" }
             };
         }
     }

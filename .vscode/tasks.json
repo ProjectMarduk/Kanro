@@ -1,35 +1,18 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
-    "version": "0.1.0",
-    "command": "echo",
-    "isShellCommand": true,
-    "args": [],
-    "showOutput": "always",
-    "echoCommand": true,
-    "suppressTaskName": true,
+    "version": "2.0.0",
     "tasks": [
         {
-            "taskName": "publish",
+            "taskName": "Publish",
             "command": "npm",
             "isShellCommand": true,
             "args": [
                 "--registry=http://localhost:4873",
                 "publish"
-            ]
+            ],
+            "dependsOn": "TypeScript Compile"
         },
         {
-            "taskName": "install kanro.core",
-            "command": "npm",
-            "isShellCommand": true,
-            "args": [
-                "install",
-                "kanro.core",
-                "--save"
-            ]
-        },
-        {
-            "taskName": "tsc",
+            "taskName": "TypeScript Compile",
             "command": "tsc",
             "isShellCommand": true,
             "args": [

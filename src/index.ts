@@ -289,20 +289,22 @@ export namespace Kanro {
             }
         }
 
-        async main() {
+        async main(config?: KanroConfigs) {
             try {
                 Logger.App.info("Initializing...");
 
-                let config = new KanroConfigs();
+                if (config == undefined) {
+                    config = new KanroConfigs();
+                }
 
                 Logger.App.info("Load app config...");
-                config.appConfig = await ConfigLoader.getKanroConfig();
+                config.appConfig = await ConfigLoader.getKanroConfig(config.appConfig);
                 Logger.App.info("Load modules config...");
-                config.modulesConfig = await ConfigLoader.getModulesConfig();
+                config.modulesConfig = await ConfigLoader.getModulesConfig(config.modulesConfig);
                 Logger.App.info("Load services config...");
-                config.serviceConfig = await ConfigLoader.getServicesConfig();
+                config.serviceConfig = await ConfigLoader.getServicesConfig(config.serviceConfig);
                 Logger.App.info("Load executors config...");
-                config.executorsConfig = await ConfigLoader.getExecutorsConfig();
+                config.executorsConfig = await ConfigLoader.getExecutorsConfig(config.executorsConfig);
                 let context = await this.initialize(config);
                 this.context = context;
                 await this.createHttpServer();
@@ -647,7 +649,7 @@ export namespace Kanro {
             async shunt(request: KanroCore.Core.IRequest, executors: KanroCore.Config.IExecutorConfig[]): Promise<KanroCore.Config.IExecutorConfig> {
                 let method = request.method.toUpperCase();
 
-                if(this.methods[method] != undefined){
+                if (this.methods[method] != undefined) {
                     return this.methods[method];
                 }
 
@@ -901,6 +903,11 @@ export namespace Kanro {
                     await File.rename(installResult[0][1], newPath);
 
                     result = this.getModuleInternal(moduleName, moduleVersion);
+                    if (result.dependencies != undefined) {
+                        for (var key in result.dependencies) {
+                            await this.installModule(result.dependencies[key].name, result.dependencies[key].version);
+                        }
+                    }
 
                     Logger.Module.success(`Install module '${name}@${version}' success! Path: '${newPath}'.`);
                 } catch (error) {
@@ -945,8 +952,7 @@ export namespace Kanro {
             }
 
             if (result == undefined) {
-                //TODO:
-                throw new Error();
+                throw new Error("Module is not installed.");
             }
 
             try {
@@ -1065,9 +1071,15 @@ export namespace Kanro {
                     await this.fillServiceDependencies(n);
                 }
             } else {
+                if (node["instance"] == undefined) {
+                    throw new Error("You must fill instance before fill dependencies.")
+                }
+
                 try {
                     let fill: KanroCore.Config.IServiceConfig[] = [];
                     let fillInstance: { [name: string]: KanroCore.Core.IService } = {};
+                    let instance: KanroCore.Core.IExecutor = node["instance"];
+
                     if (Array.isArray(node.dependencies)) {
                         for (let dependency of node.dependencies) {
                             let service = this.getService(dependency);
@@ -1094,11 +1106,30 @@ export namespace Kanro {
                             }
                             for (let property in instance.dependencies) {
                                 if (instance.dependencies[property] == undefined) {
-                                    if (this.nameOnlyServices[property] == undefined) {
-                                        throw new Error(`'${property}' required in '${node.module.name}@${node.module.version}:${node.name}', but no service provided`);
+                                    if (instance.dependencies[property]["name"] != undefined && instance.dependencies[property]["version"] != undefined) {
+                                        let serviceConfig : KanroCore.Config.IServiceConfig = {name : property, module : <KanroCore.Core.IModuleInfo>instance.dependencies[property], type : "Service"};
+                                        let service = this.getService(serviceConfig);
+                                        if(service != undefined){
+                                            instance.dependencies[property] = service.instance;
+                                        }else{
+                                            await this.fillServiceInstance(serviceConfig);
+                                            await this.fillServiceDependencies(serviceConfig);
+                                            service = this.getService(serviceConfig);
+
+                                            if(service == undefined){
+                                                throw new Error(`'${instance.dependencies[property]["name"]}@${instance.dependencies[property]["version"]}:${property}' required in '${node.module.name}@${node.module.version}:${node.name}', but no service provided`);
+                                            }
+
+                                            instance.dependencies[property] = service.instance;
+                                        }
                                     }
                                     else {
-                                        instance.dependencies[property] = this.nameOnlyServices[property].instance;
+                                        if (this.nameOnlyServices[property] == undefined) {
+                                            throw new Error(`'${property}' required in '${node.module.name}@${node.module.version}:${node.name}', but no service provided`);
+                                        }
+                                        else {
+                                            instance.dependencies[property] = this.nameOnlyServices[property].instance;
+                                        }
                                     }
                                 }
                             }
@@ -1156,6 +1187,10 @@ export namespace Kanro {
             }
 
             await App.current.reloadConfigs(configs);
+        }
+
+        getKanroConfig(key: string): any {
+            return App.current.context.configs.appConfig[key];
         }
     }
 
@@ -1367,13 +1402,13 @@ export namespace Kanro {
             await ConfigLoader.initialize();
 
             let schemaFileName = name;
-            let schemasMap = File.readJsonSync('./schema/schemas_map.json');
+            let schemasMap = File.readJsonSync(`${__dirname}/schema/schemas_map.json`);
 
             if (schemasMap != undefined) {
                 schemaFileName = schemasMap[name] == undefined ? name : schemasMap[name];
             }
 
-            let configFile = `./${name}.json`;
+            let configFile = `${__dirname}/${name}.json`;
             let config = configObject == undefined ? File.readJsonSync(configFile) : configObject;
 
 
@@ -1411,6 +1446,8 @@ export namespace Kanro {
     }
 
     export class KanroModule implements KanroCore.Core.IModule {
+        dependencies: KanroCore.Core.IModuleInfo[];
+
         context: IAppContext;
         executorInfos: { [name: string]: KanroCore.Core.IExecutorInfo; };
         async getExecutor(config: KanroCore.Config.IExecutorConfig): Promise<KanroCore.Core.IExecutor> {

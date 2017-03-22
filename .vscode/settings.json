@@ -15,7 +15,8 @@
         },
         {
             "fileMatch": [
-                "/kanro.json"
+                "/kanro.json",
+                "/kanro_*.json"
             ],
             "url": "./schema/kanro.json"
         },

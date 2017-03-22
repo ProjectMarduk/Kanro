@@ -20,7 +20,7 @@
     "ajv": "^4.11.4",
     "debug": "^2.6.1",
     "fs-promise": "^2.0.0",
-    "kanro.core": "^1.0.0-dev.30",
+    "kanro.core": "^1.0.0-dev.32",
     "npm": "^4.3.0",
     "parseurl": "^1.3.1"
   },

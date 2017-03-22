@@ -878,7 +878,7 @@ export namespace Kanro {
 
             if (result == undefined) {
                 try {
-                    let installResult = await new Promise((res, rej) => {
+                    let installResult : Array<any> = <any>await new Promise((res, rej) => {
                         Logger.NPM.info(`Module '${moduleId}' installing...`);
 
                         Npm.commands.install([`${moduleId}`], (err, data) => {
@@ -893,14 +893,15 @@ export namespace Kanro {
                         });
                     });
 
-                    let data = installResult[0][0].split("@");
+                    installResult = installResult[installResult.length - 1];
+                    let data = installResult[0].split("@");
                     let moduleName = data[0];
                     let moduleVersion = data[1];
-                    let newPath = `${Path.parse(installResult[0][1]).dir}/.${moduleVersion}@${moduleName}`;
+                    let newPath = `${Path.parse(installResult[1]).dir}/.${moduleVersion}@${moduleName}`;
                     if (await File.exists(newPath)) {
                         await File.unlink(newPath);
                     }
-                    await File.rename(installResult[0][1], newPath);
+                    await File.rename(installResult[1], newPath);
 
                     result = this.getModuleInternal(moduleName, moduleVersion);
                     if (result.dependencies != undefined) {

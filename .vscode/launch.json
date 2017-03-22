@@ -14,7 +14,7 @@
             "outFiles": [
                 "${workspaceRoot}/*"
             ],
-            "preLaunchTask": "tsc",
+            "preLaunchTask": "TypeScript Compile",
             "env": {
                 "DEBUG" : "Kanro:*"
             }
@@ -29,7 +29,7 @@
             "outFiles": [
                 "${workspaceRoot}/*"
             ],
-            "preLaunchTask": "tsc",
+            "preLaunchTask": "TypeScript Compile",
             "env": {
                 "NODE_ENV":"production",
                 "DEBUG" : "Kanro:*"

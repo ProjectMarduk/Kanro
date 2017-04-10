@@ -10,14 +10,12 @@
         "/": {
             "name": "BaseResponder",
             "module": {
-                "name": "kanro.core",
+                "name": "kanro",
                 "version": "*"
             },
             "type": "Responder",
             "response": {
-                "status": 0,
-                "message": "Normal",
-                "data": "Hello Kanro!"
+                "message": "Hello Kanro!"
             }
         }
     },
@@ -25,7 +23,7 @@
         {
             "type": "GlobalExceptionHandler",
             "module": {
-                "name": "kanro.core",
+                "name": "kanro",
                 "version": "*"
             },
             "name": "BaseGlobalExceptionHandler"

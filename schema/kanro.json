@@ -11,14 +11,9 @@
             "type": "number",
             "description": "Server port",
             "default": 80
-        },
-        "resource": {
-            "type": "string",
-            "default" : "./resource"
         }
     },
     "required": [
-        "resource",
         "port"
     ]
 }

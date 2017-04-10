@@ -3,26 +3,25 @@
     "json.schemas": [
         {
             "fileMatch": [
-                "/modules.json"
+                "configs/default/modules.json"
             ],
             "url": "./schema/modules.json"
         },
         {
             "fileMatch": [
-                "/executors.json"
+                "configs/default/executors.json"
             ],
             "url": "./schema/executors.json"
         },
         {
             "fileMatch": [
-                "/kanro.json",
-                "/kanro_*.json"
+                "configs/default/kanro.json"
             ],
             "url": "./schema/kanro.json"
         },
         {
             "fileMatch": [
-                "/services.json"
+                "configs/default/services.json"
             ],
             "url": "./schema/services.json"
         }

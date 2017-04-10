@@ -1,5 +1,0 @@
-{
-    "port": 80,
-    "registry": "http://localhost:4873",
-    "resource": "./resource"
-}

@@ -6,6 +6,9 @@ import * as Debug from 'debug';
 import * as Npm from 'npm';
 import * as QueryString from "querystring";
 import * as Url from "url";
+import * as FileType from "file-type";
+import * as MimeType from "mime-types";
+import * as ReadChunk from "read-chunk";
 
 export namespace Kanro {
     export const ModuleInfo: Core.IModuleInfo = { name: "kanro", version: "*" };
@@ -242,7 +245,7 @@ export namespace Kanro {
                         let data = installResult[0].split("@");
                         let moduleName = data[0];
                         let moduleVersion = data[1];
-                        let newPath = `${PathCore.parse(installResult[1]).dir}/.${moduleVersion}@${moduleName}`;
+                        let newPath = `${IO.Path.parse(installResult[1]).dir}/.${moduleVersion}@${moduleName}`;
 
                         if (await IO.File.exists(newPath)) {
                             await IO.File.unlink(newPath);
@@ -1829,7 +1832,7 @@ export namespace Kanro {
 
                 for (let schema of schemas) {
                     let file = `${__dirname}/schema/${schema}`;
-                    let fileInfo = PathCore.parse(schema);
+                    let fileInfo = IO.Path.parse(schema);
                     if (fileInfo.ext != ".json") {
                         continue;
                     }
@@ -2456,6 +2459,28 @@ export namespace Kanro {
              */
             constructor(data: any) {
                 this.data = data;
+            }
+        }
+
+        export class FileResponseBody implements IResponseBody {
+            path: string;
+
+            async write(response: Web.ServerResponse): Promise<any> {
+                let ext = IO.Path.extname(this.path);
+
+                if (ext) {
+                    response.setHeader("content-type", MimeType.contentType(ext));
+                }
+                else {
+                    let buffer = await ReadChunk(this.path, 0, 4100);
+                    response.setHeader("content-type", FileType(buffer).mime);
+                }
+
+                FileCore.createReadStream(this.path).pipe(response);
+            }
+
+            constructor(path: string) {
+                this.path = path;
             }
         }
 
@@ -3100,6 +3125,10 @@ export namespace Kanro {
             static async readJson(path: string): Promise<object> {
                 let data = await Utils.AsyncUtils.promise<Buffer>(FileCore.readFile, undefined, path);
                 return JSON.parse(data.toString());
+            }
+
+            static async readFile(path: string): Promise<Buffer> {
+                return await Utils.AsyncUtils.promise<Buffer>(FileCore.readFile, undefined, path);
             }
 
             static async readdir(path: string): Promise<string[]> {

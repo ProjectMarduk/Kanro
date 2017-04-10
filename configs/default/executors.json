@@ -17,6 +17,15 @@
             "response": {
                 "message": "Hello Kanro!"
             }
+        },
+        "/public/**": {
+            "name": "BaseFileResponder",
+            "module": {
+                "name": "kanro",
+                "version": "*"
+            },
+            "type": "Responder",
+            "path": "./public"
         }
     },
     "globalExceptionHandlers": [

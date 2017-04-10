@@ -628,6 +628,8 @@ export namespace Kanro {
                         return new Executors.BaseRequestReplicator(<any>config);
                     case "BaseResponder":
                         return new Executors.BaseResponder(<any>config);
+                    case "BaseFileResponder":
+                        return new Executors.BaseFileResponder(<any>config);
                     case "BaseResponseHandler":
                         return new Executors.BaseResponseHandler(<any>config);
                     case "BaseFuse":
@@ -656,6 +658,7 @@ export namespace Kanro {
                     BaseRequestDiverter: { type: Executors.ExecutorType.RequestDiverter, name: "BaseRequestDiverter" },
                     BaseRequestReplicator: { type: Executors.ExecutorType.RequestReplicator, name: "BaseRequestReplicator" },
                     BaseResponder: { type: Executors.ExecutorType.Responder, name: "BaseResponder" },
+                    BaseFileResponder: { type: Executors.ExecutorType.Responder, name: "BaseFileResponder" },
                     BaseResponseHandler: { type: Executors.ExecutorType.ResponseHandler, name: "BaseResponseHandler" },
                     BaseFuse: { type: Executors.ExecutorType.Fuse, name: "BaseFuse" },
                     BaseExceptionHandler: { type: Executors.ExecutorType.ExceptionHandler, name: "BaseExceptionHandler" },
@@ -764,7 +767,7 @@ export namespace Kanro {
                             }
                         }
                         if (result.response.body != undefined) {
-                            result.response.body.write(response);
+                            await result.response.body.write(response);
                         }
 
                         response.end();
@@ -1477,6 +1480,39 @@ export namespace Kanro {
             }
         }
 
+        export class BaseFileResponder extends BaseExecutor implements IResponder {
+            async respond(request: Http.IRequest): Promise<Http.IResponse> {
+                let response = request.respond();
+                let file = (<Http.Request>request).routerKey.slice((<Http.Request>request).routerIndex).join("/");
+                let path = `${this.path}/${file}`;
+
+                if (await IO.File.exists(path)) {
+                    response.body = new Http.FileResponseBody(path);
+                    return response;
+                }
+
+                throw new Exceptions.KanroNotFoundException();
+            }
+
+            response: any;
+            type: ExecutorType.Responder = ExecutorType.Responder;
+            name: string = "BaseFileResponser";
+            path: string;
+
+            constructor(config: Containers.IResponderContainer) {
+                super(config);
+                if (config["path"] != undefined) {
+                    if ((<string>config["path"]).startsWith(".")) {
+                        this.path = `${process.cwd()}/${config["path"]}`;
+                    } else {
+                        this.path = config["path"];
+                    }
+                } else {
+                    this.path = process.cwd();
+                }
+            }
+        }
+
         export class BaseResponseHandler extends BaseExecutor implements IResponseHandler {
             async handler(response: Http.IResponse): Promise<Http.IResponse> {
                 return response;
@@ -1972,7 +2008,7 @@ export namespace Kanro {
 
             matchRequest(request: Http.Request, deep: number = 0, routerStack: RouterKey[] = [], param: { [name: string]: string } = {}): RouterResult[] {
                 if (this.path == undefined) {
-                    if (request.routerKey.length == deep && Object.keys(this.children).length == 0) {
+                    if (request.routerKey.length == deep && this.executor != undefined) {
                         return [new RouterResult(this.executor, deep, [], {})];
                     }
                     let results = [];
@@ -2098,16 +2134,18 @@ export namespace Kanro {
                         this.config.next.push(this.config[name]);
                         this.node.addRouter(this.config[name], name);
                         if (name.endsWith("/**")) {
-                            this.addRouterKeyToNextRouter(`${this.preRouters}${name.slice(0, name.length - 3)}`, this.config[name]);
+                            if(this.addRouterKeyToNextRouter(`${this.preRouters}${name.slice(0, name.length - 3)}`, this.config[name])){
+                                continue;
+                            }
                         }
-                        else {
-                            (<any>this.dependencies["LoggerManager"]).Router.success(`Router node '${this.preRouters}${name}' added`);
-                        }
+                        (<any>this.dependencies["LoggerManager"]).Router.success(`Router node '${this.preRouters}${name}' added`);
                     }
                 }
             }
 
             addRouterKeyToNextRouter(key: string, executor: Kanro.Executors.IExecutor[] | Kanro.Executors.IExecutor) {
+                let result = false;
+
                 if (executor == undefined) {
                     return;
                 }
@@ -2117,9 +2155,9 @@ export namespace Kanro {
                 }
                 if (Array.isArray(executor)) {
                     for (let e of executor) {
-                        this.addRouterKeyToNextRouter(key, e);
+                        result = result || this.addRouterKeyToNextRouter(key, e);
                     }
-                    return;
+                    return result;
                 }
 
                 if (executor.name == this.name) {
@@ -2134,9 +2172,11 @@ export namespace Kanro {
                             this.addRouterKeyToNextRouter(key, router[routerKey]);
                         }
                     }
+
+                    result = true;
                 }
 
-                this.addRouterKeyToNextRouter(key, executor["next"]);
+                return result || this.addRouterKeyToNextRouter(key, executor["next"]);
             }
         }
 
@@ -2476,7 +2516,11 @@ export namespace Kanro {
                     response.setHeader("content-type", FileType(buffer).mime);
                 }
 
-                FileCore.createReadStream(this.path).pipe(response);
+                await new Promise((res, rej) => {
+                    FileCore.createReadStream(this.path).pipe(response).on("finish", () => {
+                        res();
+                    });
+                });
             }
 
             constructor(path: string) {

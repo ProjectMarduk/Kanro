@@ -12,41 +12,51 @@ Kanro 是一个基于 TypeScript/NodeJS 的轻量级的后端框架，采用完�
 从 https://nodejs.org/en/download/ 下载 NodeJS 安装程序，或者使用 apt-get, yum 等包管理器安装 NodeJS。使用 `node -v` 来检查是否安装成功。
 02. 安装 TypeScript  
 使用 `npm install typescript -g` 将 TypeScript 安装到全局，通过 `tsc -v` 来检查安装是否成功。
-03. 克隆项目  
-使用 `git clone https://github.com/ProjectMarduk/Kanro.git` 将本项目克隆到本地。
-04. 准备私有 npm 仓库  
-推荐使用 [verdaccio](https://github.com/verdaccio/verdaccio) 来创建私有 npm 仓库。
+03. 准备私有 npm 仓库  
+推荐使用 [verdaccio](https://github.com/verdaccio/verdaccio) 来创建私有 npm 仓库。  
+04. 创建一个 npm 项目  
+新建一个文件夹，使用 `npm init` 与 `tsc init` 来初始化一个空项目。  
+
 ### Hello World!
-01. 安装依赖  
-进入本地刚刚克隆好的 Kanro 项目文件夹，运行 `npm install` 来安装所有依赖。
-> Note: 如果显示缺失 kanro.core 模块，请参考 [Kanro.Core](https://github.com/ProjectMarduk/Kanro.Core) 的说明，提交 kanro.core 到私有仓库。
-02. 编译 Kanro  
-运行 `tsc` 命令来编译 Kanro，并在根目录下生成 index.js。
-03. 添加 DEBUG 环境变量来开启日志  
-*nix 使用 `export DEBUG=Kanro:*` 导入 DEBUG 环境变量，Windows 采用 `set DEBUG=Kanro:*` 导入 DEBUG 环境变量。
-04. 运行 Hello World
-使用 `node index.js` 来运行 Hello World 示例。  
-Kanro 会输出运行信息，如果看到 `Http server listening on '9180'` 则表示 Kanro 已经开始运行并侦听 HTTP 请求。
+01. 安装 Kanro  
+使用 `npm install kanro --save` 来未项目安装 Kanro。
+02. 在代码中创建 Kanro 应用  
+下面的代码创建一个默认的 Kanro 应用。  
+```TypeScript
+import { Kanro } from "kanro";
+
+let app = new Kanro.Core.Application();
+app.main();
 ```
-  Kanro:App       - [!] Initializing... +0ms
-  Kanro:App       - [!] Load app config... +1ms
-  Kanro:App       - [!] Load modules config... +81ms
-  Kanro:App       - [!] Load services config... +1ms
-  Kanro:App       - [!] Load executors config... +8ms
-  Kanro:App       - [!] Check module status... +54ms
-  Kanro:NPM       - [!] Set NPM registry to 'http://localhost:4873'. +21ms
-  Kanro:App       - [!] Create services... +1ms
+03. 编译 Kanro  
+运行 `tsc` 命令来编译 项目。
+
+04. 添加 DEBUG 环境变量来开启日志  
+*nix 使用 `export DEBUG=Kanro:*` 导入 DEBUG 环境变量，Windows 采用 `set DEBUG=Kanro:*` 导入 DEBUG 环境变量。
+
+05. 运行 Hello World
+使用 `node index.js` 来运行 Hello World 示例。  
+Kanro 会输出运行信息，如果看到 `Kanro is ready.` 则表示 Kanro 已经开始运行并侦听 HTTP 请求。
+
+```
+  Kanro:App       - [!] Booting... +0ms
+  Kanro:Config    - [!] Unspecified configs, searching for configs... +1ms
+  Kanro:App       - [!] Create application context... +105ms
+  Kanro:App       - [!] Booting HTTP server... +1ms
+  Kanro:App       - [!] Initializing... +3ms
+  Kanro:App       - [!] Check module status... +0ms
+  Kanro:HTTP      - [+] Http server listening on '80' +0ms
+  Kanro:NPM       - [!] Set NPM registry to 'http://localhost:4873'. +17ms
+  Kanro:App       - [!] Create services... +0ms
   Kanro:App       - [!] Initializing executors... +1ms
   Kanro:Router    - [+] Router node '/' added +1ms
-  Kanro:App       - [!] Initialize http server... +1ms
-  Kanro:HTTP      - [+] Http server listening on '9180' +5ms
+  Kanro:Router    - [+] Router node '/public/**' added +1ms
+  Kanro:App       - [+] Kanro is ready. +1ms
 ```
-通过浏览器或者其他工具，请求 `http://127.0.0.1:9180` 即可获得 Hello World 响应。
+通过浏览器或者其他工具，请求 `http://127.0.0.1:80` 即可获得 Hello World 响应。
 ```JSON
 {
-  "status": 0,
-  "message": "Normal",
-  "data": "Hello Kanro!"
+  "message": "Hello Kanro!"
 }
 ```
 ## 其他介绍

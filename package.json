@@ -1,6 +1,6 @@
 {
   "name": "kanro",
-  "version": "1.0.0-dev.0",
+  "version": "1.0.1",
   "description": "Kanro backend framework.",
   "main": "./index.js",
   "typings": "./index",

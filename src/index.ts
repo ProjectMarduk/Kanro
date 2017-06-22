@@ -84,7 +84,7 @@ export namespace Kanro {
              * 
              * @param {string} name Name of module.
              * @param {string} version Version of module.
-             * @param {boolean} [reinstall] Resinstall module.
+             * @param {boolean} [reinstall] Reinstall module.
              * @returns {Promise<IModule>} The module instance.
              * 
              * @memberOf IModuleManager
@@ -730,7 +730,7 @@ export namespace Kanro {
                         result = await this.handler(result.request, result.response, result.error, config.globalRequestHandler);
 
                         if (result.response == undefined) {
-                            throw new Kanro.Exceptions.KanroNotFoundException();
+                            throw new Kanro.Exceptions.NotFoundException();
                         }
                     } catch (error) {
                         if (config.globalExceptionHandlers != undefined) {
@@ -773,7 +773,7 @@ export namespace Kanro {
                         response.end();
                     }
                     else {
-                        throw new Kanro.Exceptions.KanroNotFoundException();
+                        throw new Kanro.Exceptions.NotFoundException();
                     }
                 } catch (error) {
                     response.statusCode = 500;
@@ -812,15 +812,13 @@ export namespace Kanro {
                                 let nodes = node.next.map((c) => c.instance);
 
                                 if (node.next.length == 0) {
-                                    //TODO:
-                                    throw new Error();
+                                    throw new Exceptions.UnexpectedExecutorException(node);
                                 }
 
                                 let requests = await node.instance.copy(request, node.next.length);
 
                                 if (node.next.length != requests.length) {
-                                    //TODO:
-                                    throw new Error();
+                                    throw new Exceptions.NonstandardExecutorException(node);
                                 }
 
                                 requests.forEach((v, i, a) => {
@@ -907,8 +905,7 @@ export namespace Kanro {
                                 break;
                             }
                         default:
-                            //TODO:
-                            throw new Error();
+                            throw new Exceptions.ExecutorNotSupportedException(executor);
                     }
 
                     return await this.handler(request, response, error, next);
@@ -1491,12 +1488,12 @@ export namespace Kanro {
                     return response;
                 }
 
-                throw new Exceptions.KanroNotFoundException();
+                throw new Exceptions.NotFoundException();
             }
 
             response: any;
             type: ExecutorType.Responder = ExecutorType.Responder;
-            name: string = "BaseFileResponser";
+            name: string = "BaseFileResponder";
             path: string;
 
             constructor(config: Containers.IResponderContainer) {
@@ -1531,7 +1528,7 @@ export namespace Kanro {
                 if (!err.name.startsWith("Error.Kanro.Http")) {
                     return undefined;
                 } else {
-                    let kanroHttpException: Exceptions.KanroHttpException = <any>err;
+                    let kanroHttpException: Exceptions.HttpException = <any>err;
 
                     let response = request.respond();
                     response.status = kanroHttpException.status;
@@ -1592,7 +1589,7 @@ export namespace Kanro {
                 if (!err.name.startsWith("Error.Kanro.Http")) {
                     return undefined;
                 } else {
-                    let kanroHttpException: Exceptions.KanroHttpException = <any>err;
+                    let kanroHttpException: Exceptions.HttpException = <any>err;
 
                     let response = request.respond();
                     response.status = kanroHttpException.status;
@@ -1851,7 +1848,7 @@ export namespace Kanro {
                 await ConfigBuilder.initialize();
 
                 if (!ConfigBuilder.ajv.validate(type, config)) {
-                    throw new Exceptions.KanroInvalidConfigException(type, ConfigBuilder.ajv.errors.pop().message);
+                    throw new Exceptions.InvalidConfigException(type, ConfigBuilder.ajv.errors.pop().message);
                 }
 
                 return config;
@@ -1986,8 +1983,7 @@ export namespace Kanro {
             private add(executor: Kanro.Containers.IExecutorContainer, keys: string[]) {
                 if (keys.length == 0) {
                     if (this.executor != null) {
-                        //TODO: 
-                        throw new Error();
+                        throw new Exceptions.InvalidRouterConfigException("Duplicate router config be provided.");
                     }
                     this.executor = executor;
                     return;
@@ -2105,7 +2101,7 @@ export namespace Kanro {
                 }
 
                 if (selectedNode == undefined || selectedNode.executor == undefined) {
-                    throw new Kanro.Exceptions.KanroNotFoundException();
+                    throw new Kanro.Exceptions.NotFoundException();
                 }
 
                 (<Http.Request>request).routerIndex = deep;
@@ -2134,7 +2130,7 @@ export namespace Kanro {
                         this.config.next.push(this.config[name]);
                         this.node.addRouter(this.config[name], name);
                         if (name.endsWith("/**")) {
-                            if(this.addRouterKeyToNextRouter(`${this.preRouters}${name.slice(0, name.length - 3)}`, this.config[name])){
+                            if (this.addRouterKeyToNextRouter(`${this.preRouters}${name.slice(0, name.length - 3)}`, this.config[name])) {
                                 continue;
                             }
                         }
@@ -2249,7 +2245,7 @@ export namespace Kanro {
                     return this.methods[method];
                 }
 
-                throw new Kanro.Exceptions.KanroMethodNotAllowedException();
+                throw new Kanro.Exceptions.MethodNotAllowedException();
             }
 
             type: Kanro.Executors.ExecutorType.RequestDiverter = Kanro.Executors.ExecutorType.RequestDiverter;
@@ -2643,7 +2639,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroHttpException extends KanroException {
+        export class HttpException extends KanroException {
             public name: string = "Error.Kanro.Http";
             public status: number = undefined;
 
@@ -2653,7 +2649,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroBadRequestException extends KanroHttpException {
+        export class BadRequestException extends HttpException {
             public name: string = "Error.Kanro.Http.BadRequest";
 
             constructor(message: string = "Bad Request", innerException: Error = undefined) {
@@ -2661,7 +2657,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroUnauthorizedException extends KanroHttpException {
+        export class UnauthorizedException extends HttpException {
             public name: string = "Error.Kanro.Http.Unauthorized";
 
             constructor(message: string = "Unauthorized", innerException: Error = undefined) {
@@ -2669,7 +2665,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroForbiddenException extends KanroHttpException {
+        export class ForbiddenException extends HttpException {
             public name: string = "Error.Kanro.Http.Forbidden";
 
             constructor(message: string = "Forbidden", innerException: Error = undefined) {
@@ -2677,7 +2673,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroNotFoundException extends KanroHttpException {
+        export class NotFoundException extends HttpException {
             public name: string = "Error.Kanro.Http.NotFound";
 
             constructor(message: string = "Not Found", innerException: Error = undefined) {
@@ -2685,7 +2681,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroMethodNotAllowedException extends KanroHttpException {
+        export class MethodNotAllowedException extends HttpException {
             public name: string = "Error.Kanro.Http.MethodNotAllowed";
 
             constructor(message: string = "Bad Request", innerException: Error = undefined) {
@@ -2693,7 +2689,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroNotAcceptableException extends KanroHttpException {
+        export class NotAcceptableException extends HttpException {
             public name: string = "Error.Kanro.Http.NotAcceptable";
 
             constructor(message: string = "Not Acceptable", innerException: Error = undefined) {
@@ -2701,7 +2697,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroProxyAuthenticationRequiredException extends KanroHttpException {
+        export class ProxyAuthenticationRequiredException extends HttpException {
             public name: string = "Error.Kanro.Http.ProxyAuthenticationRequired";
 
             constructor(message: string = "Proxy Authentication Required", innerException: Error = undefined) {
@@ -2709,7 +2705,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroRequestTimeoutException extends KanroHttpException {
+        export class RequestTimeoutException extends HttpException {
             public name: string = "Error.Kanro.Http.RequestTimeout";
 
             constructor(message: string = "Request Timeout", innerException: Error = undefined) {
@@ -2717,7 +2713,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroConflictException extends KanroHttpException {
+        export class ConflictException extends HttpException {
             public name: string = "Error.Kanro.Http.Conflict";
 
             constructor(message: string = "Conflict", innerException: Error = undefined) {
@@ -2725,7 +2721,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroGoneException extends KanroHttpException {
+        export class GoneException extends HttpException {
             public name: string = "Error.Kanro.Http.Gone";
 
             constructor(message: string = "Gone", innerException: Error = undefined) {
@@ -2733,7 +2729,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroInternalServerErrorException extends KanroHttpException {
+        export class InternalServerErrorException extends HttpException {
             public name: string = "Error.Kanro.Http.InternalServerError";
 
             constructor(message: string = "Internal Server Error", innerException: Error = undefined) {
@@ -2741,7 +2737,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroNotImplementedException extends KanroHttpException {
+        export class NotImplementedException extends HttpException {
             public name: string = "Error.Kanro.Http.NotImplemented";
 
             constructor(message: string = "Not Implemented", innerException: Error = undefined) {
@@ -2749,7 +2745,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroBadGatewayException extends KanroHttpException {
+        export class BadGatewayException extends HttpException {
             public name: string = "Error.Kanro.Http.BadGateway";
 
             constructor(message: string = "Bad Gateway", innerException: Error = undefined) {
@@ -2757,7 +2753,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroServiceUnavailableException extends KanroHttpException {
+        export class ServiceUnavailableException extends HttpException {
             public name: string = "Error.Kanro.Http.ServiceUnavailable";
 
             constructor(message: string = "Service Unavailable", innerException: Error = undefined) {
@@ -2765,7 +2761,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroGatewayTimeoutException extends KanroHttpException {
+        export class GatewayTimeoutException extends HttpException {
             public name: string = "Error.Kanro.Http.GatewayTimeout";
 
             constructor(message: string = "Gateway Timeout", innerException: Error = undefined) {
@@ -2773,7 +2769,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroVersionNotSupportedException extends KanroHttpException {
+        export class VersionNotSupportedException extends HttpException {
             public name: string = "Error.Kanro.Http.VersionNotSupported";
 
             constructor(message: string = "HTTP Version Not Supported", innerException: Error = undefined) {
@@ -2781,7 +2777,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroInsufficientStorageException extends KanroHttpException {
+        export class InsufficientStorageException extends HttpException {
             public name: string = "Error.Kanro.Http.InsufficientStorage";
 
             constructor(message: string = "Insufficient Storage", innerException: Error = undefined) {
@@ -2789,7 +2785,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroBandwidthLimitExceededException extends KanroHttpException {
+        export class BandwidthLimitExceededException extends HttpException {
             public name: string = "Error.Kanro.Http.BandwidthLimitExceeded";
 
             constructor(message: string = "Bandwidth Limit Exceeded", innerException: Error = undefined) {
@@ -2797,7 +2793,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroInvalidModuleException extends KanroException {
+        export class InvalidModuleException extends KanroException {
             public name: string = "Error.Kanro.Module.Invalid";
             public module = undefined;
 
@@ -2810,34 +2806,47 @@ export namespace Kanro {
             }
         }
 
-        export class KanroInvalidExecutorException extends KanroException {
+        export class InvalidExecutorException extends KanroException {
             public name: string = "Error.Kanro.Executor.Invalid";
             public executor = undefined;
 
             constructor(executor: any, message: string = "Invalid Kanro executor.", innerException: Error = undefined) {
                 super(message, innerException);
-                if (module == undefined) {
+                if (executor == undefined) {
                     this.message = "Kanro executor not found";
                 }
                 this.executor = executor;
             }
         }
 
+        export class ExecutorNotSupportedException extends KanroException {
+            public name: string = "Error.Kanro.Executor.NotSupported";
+            public executor: Containers.IExecutorContainer;
+
+            constructor(executor: Containers.IExecutorContainer, message: string = undefined, innerException: Error = undefined) {
+                super(message, innerException);
+                this.executor = executor;
+                if (message == undefined) {
+                    this.message = `Type of '${executor.module.name}@${executor.module.version}:${executor.name}' is not supported.`;
+                }
+            }
+        }
+
         export class ExceptionHelper {
             public static throwIfInvalidModule(module: Core.IModule) {
                 if (!Utils.TypeUtils.isValidKanroModule(module)) {
-                    throw new KanroInvalidModuleException(module);
+                    throw new InvalidModuleException(module);
                 }
             }
 
             public static throwIfInvalidExecutor(executor: Executors.IExecutor) {
                 if (!Utils.TypeUtils.isValidExecutor(executor)) {
-                    throw new KanroInvalidExecutorException(executor);
+                    throw new InvalidExecutorException(executor);
                 }
             }
         }
 
-        export class KanroInvalidConfigException extends Kanro.Exceptions.KanroException {
+        export class InvalidConfigException extends Kanro.Exceptions.KanroException {
             name: string = "Error.Kanro.Config.Invalid";
 
             constructor(config: string, message: string = undefined, innerException: Error = undefined) {
@@ -2845,7 +2854,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroArgumentException extends Kanro.Exceptions.KanroException {
+        export class ArgumentException extends Kanro.Exceptions.KanroException {
             name: string = "Error.Kanro.Argument";
             paramName: string;
 
@@ -2855,7 +2864,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroArgumentNullException extends KanroArgumentException {
+        export class ArgumentNullException extends ArgumentException {
             name: string = "Error.Kanro.Argument.Null";
 
             constructor(paramName: string, innerException: Error = undefined) {
@@ -2863,7 +2872,7 @@ export namespace Kanro {
             }
         }
 
-        export class KanroArgumentOutOfRangeException extends KanroArgumentException {
+        export class ArgumentOutOfRangeException extends ArgumentException {
             name: string = "Error.Kanro.Argument.OutOfRange";
 
             constructor(paramName: string, innerException: Error = undefined) {
@@ -2871,12 +2880,44 @@ export namespace Kanro {
             }
         }
 
-        export class KanroArgumentTypeNotMatchedException extends KanroArgumentOutOfRangeException {
+        export class ArgumentTypeNotMatchedException extends ArgumentOutOfRangeException {
             name: string = "Error.Kanro.Argument.TypeNotMatched";
 
             constructor(paramName: string, type: string, innerException: Error = undefined) {
                 super(paramName, innerException);
                 this.message = `Type of '${paramName}' is not matched of '${type}'.`;
+            }
+        }
+
+        export class NonstandardExecutorException extends KanroException {
+            name: string = "Error.Kanro.Executor.Nonstandard";
+            executor: Containers.IExecutorContainer;
+
+            constructor(executor : Containers.IExecutorContainer, message: string = undefined, innerException: Error = undefined) {
+                super(message, innerException);
+                this.executor = executor;
+
+                if(message == undefined){
+                    message = `Nonstandard output has been given by '${this.executor.module.name}@${this.executor.module.version}:${this.executor.name}'.`;
+                }
+            }
+        }
+
+        export class UnexpectedExecutorException extends KanroException {
+            name: string = "Error.Kanro.Executor.Unexpected";
+            executor: Containers.IExecutorContainer;
+
+            constructor(executor : Containers.IExecutorContainer, message: string = "Unexpected input or output executor be provided.", innerException: Error = undefined) {
+                super(message, innerException);
+                this.executor = executor;
+            }
+        }
+
+        export class InvalidRouterConfigException extends KanroException {
+            name: string = "Error.Kanro.RouterConfig.Invalid";
+
+            constructor(message: string = "Invalid router config be provided.", innerException: Error = undefined) {
+                super(message, innerException);
             }
         }
     }

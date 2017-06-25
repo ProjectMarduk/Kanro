@@ -12,7 +12,8 @@
             "cwd": "${workspaceRoot}",
             "sourceMaps": true,
             "outFiles": [
-                "${workspaceRoot}/*"
+                "${workspaceRoot}/bin/**",
+                "${workspaceRoot}/bin/**/**"
             ],
             "preLaunchTask": "TypeScript Compile",
             "env": {
@@ -27,7 +28,7 @@
             "cwd": "${workspaceRoot}",
             "sourceMaps": true,
             "outFiles": [
-                "${workspaceRoot}/*"
+                "${workspaceRoot}/bin/**"
             ],
             "preLaunchTask": "TypeScript Compile",
             "env": {

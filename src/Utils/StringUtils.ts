@@ -1,5 +1,5 @@
 export class StringUtils {
-    static pathSplit(path: string): string[] {
+    static routerPathSplit(path: string): string[] {
         let result: string[] = [];
         let current = "";
         if (!path.endsWith("/")) {
@@ -55,6 +55,19 @@ export class StringUtils {
             return str;
         } else {
             return ch.repeat(padLen) + str;
+        }
+    }
+
+    static toString(obj: any) {
+        if (obj == undefined) {
+            return new String(obj);
+        }
+
+        if (typeof obj['toString'] == 'function') {
+            return obj.toString();
+        }
+        else {
+            return new String(obj);
         }
     }
 }

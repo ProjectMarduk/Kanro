@@ -1,4 +1,4 @@
-import * as PathModule from "path";
+import * as Path from "path";
 
 export * from "./File";
-export { PathModule as Path };
+export { Path };

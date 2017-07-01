@@ -1,0 +1,52 @@
+{
+    "port": 80,
+    "registry": "http://localhost:4873",
+    "resource": "./resource",
+    "entryPoint": {
+        "name": "Router",
+        "module": {
+            "name": "kanro",
+            "version": "*"
+        },
+        "/": {
+            "name": "MethodRouter",
+            "module": {
+                "name": "kanro",
+                "version": "*"
+            },
+            "GET": {
+                "name": "JsonRenderer",
+                "module": {
+                    "name": "kanro",
+                    "version": "*"
+                },
+                "response": {
+                    "message": "Hello Kanro!"
+                }
+            }
+        },
+        "/public/**": {
+            "name": "MethodRouter",
+            "module": {
+                "name": "kanro",
+                "version": "*"
+            },
+            "GET": {
+                "name": "FileRenderer",
+                "module": {
+                    "name": "kanro",
+                    "version": "*"
+                }
+            }
+        },
+        "exceptionHandlers": [
+            {
+                "name": "HttpExceptionRenderer",
+                "module": {
+                    "name": "kanro",
+                    "version": "*"
+                }
+            }
+        ]
+    }
+}

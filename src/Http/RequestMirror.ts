@@ -1,6 +1,6 @@
 import { ObjectUtils } from "../Utils"
 import * as Http from "http";
-import { IExecutorContainer } from "../Containers";
+import { INodeContainer, Node } from "../Core";
 import { IRequest } from "./IRequest";
 import { IHttpParam } from "./IHttpParam";
 import { IHttpHeader } from "./IHttpHeader";
@@ -16,10 +16,14 @@ export class RequestMirror implements IRequest {
     url: string;
     method: string;
     $response: Response;
-    traceStack: IExecutorContainer[];
+    traceStack: INodeContainer<Node>[];
 
     routerKey: string[];
     routerIndex: number;
+
+    get relativeUrl(): String {
+        return this.routerKey.slice(this.routerIndex).join("/");
+    }
 
     fork(): IRequest {
         return new RequestMirror(this);

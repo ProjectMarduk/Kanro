@@ -1,5 +1,5 @@
 import * as Http from "http";
-import { IExecutorContainer } from "../Containers";
+import { INodeContainer, Node } from "../Core";
 import { IRequest } from "./IRequest";
 import { IResponseBody } from "./IResponseBody";
 import { IHttpHeader } from "./IHttpHeader";
@@ -47,10 +47,10 @@ export interface IResponse {
      */
     status: number;
     /**
-     * Executors which have handled this request, it is very useful for debug, it will sync with 'request.traceStack'.
+     * Nodes which have handled this request, it is very useful for debug, it will sync with 'request.traceStack'.
      * 
-     * @type {Config.IExecutorConfig[]}
+     * @type {Config.INodeConfig[]}
      * @memberOf IResponse
      */
-    traceStack: IExecutorContainer[];
+    traceStack: INodeContainer<Node>[];
 }

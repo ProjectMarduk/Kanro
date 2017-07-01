@@ -1,7 +1,7 @@
 import * as Http from "http";
 import * as Url from "url";
 import * as QueryString from "querystring";
-import { IExecutorContainer } from "../Containers";
+import { INodeContainer, Node } from "../Core";
 import { ObjectUtils } from "../Utils";
 import { IRequest } from "./IRequest";
 import { RequestMirror } from "./RequestMirror";
@@ -29,7 +29,11 @@ export class Request implements IRequest {
     query: IUrlQuery;
     url: string;
     method: string;
-    traceStack: IExecutorContainer[];
+    traceStack: INodeContainer<Node>[];
+
+    get relativeUrl(): String{
+        return this.routerKey.slice(this.routerIndex).join("/");
+    }
 
     routerKey: string[];
     routerIndex: number;

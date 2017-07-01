@@ -1,10 +1,9 @@
-import { BaseExecutor, IRequestDiverter, ExecutorType, IService } from "../Executors";
+import { Node, RequestDiverter, Service, INodeContainer } from "../Core";
 import { IRequest } from "../Http";
-import { IExecutorContainer, IRequestDiverterContainer } from "../Containers";
 import { MethodNotAllowedException } from "../Exceptions";
 
-export class MethodRouter extends BaseExecutor implements IRequestDiverter {
-    async shunt(request: IRequest, executors: IExecutorContainer[]): Promise<IExecutorContainer> {
+export class MethodRouter extends RequestDiverter {
+    async shunt(request: IRequest, nodes: INodeContainer<Node>[]): Promise<INodeContainer<Node>> {
         let method = request.method.toUpperCase();
 
         if (this.methods[method] != undefined) {
@@ -14,18 +13,15 @@ export class MethodRouter extends BaseExecutor implements IRequestDiverter {
         throw new MethodNotAllowedException();
     }
 
-    type: ExecutorType.RequestDiverter = ExecutorType.RequestDiverter;
-    dependencies: { [name: string]: IService; } = {};
-    name: string = "MethodRouter";
+    dependencies: { [name: string]: Service; } = {};
+    methods: { [method: string]: INodeContainer<Node> } = {};
 
-    methods: { [method: string]: IExecutorContainer } = {};
+    constructor(container: INodeContainer<RequestDiverter>) {
+        super(container);
 
-    constructor(config: IRequestDiverterContainer) {
-        super(config);
+        container.next = [];
 
-        config.next = [];
-
-        for (var key in config) {
+        for (var key in container) {
             switch (key.toUpperCase()) {
                 case "OPTIONS":
                 case "GET":
@@ -36,13 +32,13 @@ export class MethodRouter extends BaseExecutor implements IRequestDiverter {
                 case "TRACE":
                 case "CONNECT":
                 case "PATCH":
-                    this.methods[key.toUpperCase()] = config[key];
-                    config.next.push(config[key]);
+                    this.methods[key.toUpperCase()] = container[key];
+                    container.next.push(container[key]);
                     break;
                 default:
                     if (key.startsWith("-")) {
-                        this.methods[key.slice(1).toUpperCase()] = config[key];
-                        config.next.push(config[key]);
+                        this.methods[key.slice(1).toUpperCase()] = container[key];
+                        container.next.push(container[key]);
                     }
                     break;
             }

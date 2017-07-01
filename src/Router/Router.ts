@@ -1,14 +1,14 @@
-import { BaseExecutor, IRequestDiverter, ExecutorType, IService, IExecutor } from "../Executors";
+import { Node, RequestDiverter, INodeContainer } from "../Core";
 import { IRequest, Request } from "../Http";
-import { IExecutorContainer, IRequestDiverterContainer } from "../Containers";
 import { NotFoundException } from "../Exceptions";
-import { IModuleInfo } from "../Core";
-import { ModuleInfo } from "..";
+import { IModuleInfo, Service } from "../Core";
 import { RouterResult } from "./RouterResult";
 import { RouterNode } from "./RouterNode";
+import { Logger, Colors } from "../Logging";
+import { KanroManager } from "..";
 
-export class Router extends BaseExecutor implements IRequestDiverter {
-    async shunt(request: IRequest, nodes: IExecutorContainer[]): Promise<IExecutorContainer> {
+export class Router extends RequestDiverter {
+    async shunt(request: IRequest, nodes: INodeContainer<Node>[]): Promise<INodeContainer<Node>> {
         let result = this.node.matchRequest(<any>request, (<Request>request).routerIndex);
 
         let deep = -1;
@@ -29,68 +29,68 @@ export class Router extends BaseExecutor implements IRequestDiverter {
             }
         }
 
-        if (selectedNode == undefined || selectedNode.executor == undefined) {
+        if (selectedNode == undefined || selectedNode.node == undefined) {
             throw new NotFoundException();
         }
 
         (<Request>request).routerIndex = deep;
         request["param"] = Object.assign(request["param"] == undefined ? {} : request["param"], selectedNode.param);
-        return selectedNode.executor;
+        return selectedNode.node;
     }
-    type: ExecutorType.RequestDiverter = ExecutorType.RequestDiverter;
-    name: string = "KanroRouter";
     node: RouterNode;
-    preRouters: string;
-    dependencies: { [name: string]: IService | IModuleInfo; } = {};
-    config: IRequestDiverterContainer;
+    $preRouters: string;
+    dependencies: { [name: string]: Service | IModuleInfo; } = { KanroManager: { name: "kanro", version: "*" } };
+    container: INodeContainer<RequestDiverter>;
+    logger: Logger;
 
-    constructor(config: IRequestDiverterContainer) {
-        super(config);
-        this.preRouters = config["preRouters"] != undefined ? config["preRouters"] : "";
-        this.config = config;
-        this.dependencies["LoggerManager"] = ModuleInfo;
+    constructor(container: INodeContainer<RequestDiverter>) {
+        super(container);
+        this.$preRouters = container["$preRouters"] != undefined ? container["$preRouters"] : "";
+        this.container = container;
     }
 
-    async onLoaded() {
-        this.config.next = [];
+    async onDependenciesFilled() {
+        this.logger = (<KanroManager>this.dependencies.KanroManager).registerLogger("Kanro:Router", Colors.red);
+
+        this.container.next = [];
         this.node = new RouterNode(undefined);
-        for (let name in this.config) {
+        for (let name in this.container) {
             if (name.startsWith("/")) {
-                this.config.next.push(this.config[name]);
-                this.node.addRouter(this.config[name], name);
+                this.container.next.push(this.container[name]);
+                this.node.addRouter(this.container[name], name);
                 if (name.endsWith("/**")) {
-                    if (this.addRouterKeyToNextRouter(`${this.preRouters}${name.slice(0, name.length - 3)}`, this.config[name])) {
+                    if (this.addRouterKeyToNextRouter(`${this.$preRouters}${name.slice(0, name.length - 3)}`, this.container[name])) {
                         continue;
                     }
                 }
-                (<any>this.dependencies["LoggerManager"]).Router.success(`Router node '${this.preRouters}${name}' added`);
+               this.logger.success(`Router node '${this.$preRouters}${name}' added`);
             }
         }
     }
 
-    addRouterKeyToNextRouter(key: string, executor: IExecutor[] | IExecutor) {
+    addRouterKeyToNextRouter(key: string, node: INodeContainer<Node>[] | INodeContainer<Node>) {
         let result = false;
 
-        if (executor == undefined) {
+        if (node == undefined) {
             return;
         }
 
         if (key.endsWith("/")) {
             key = key.slice(0, key.length - 1);
         }
-        if (Array.isArray(executor)) {
-            for (let e of executor) {
+        if (Array.isArray(node)) {
+            for (let e of node) {
                 result = result || this.addRouterKeyToNextRouter(key, e);
             }
             return result;
         }
 
-        if (executor.name == this.name) {
-            let router = <Router>executor;
-            if (router.preRouters == undefined) {
-                router.preRouters = "";
+        if (node.name == this.name) {
+            let router = <INodeContainer<Router>>node;
+            if (router.instance.$preRouters == undefined) {
+                router.instance.$preRouters = "";
             }
-            router.preRouters += key;
+            router.instance.$preRouters += key;
 
             for (let routerKey in router) {
                 if (routerKey.startsWith("/")) {
@@ -101,6 +101,6 @@ export class Router extends BaseExecutor implements IRequestDiverter {
             result = true;
         }
 
-        return result || this.addRouterKeyToNextRouter(key, executor["next"]);
+        return result || this.addRouterKeyToNextRouter(key, node["next"]);
     }
 }

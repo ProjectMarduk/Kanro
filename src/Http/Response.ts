@@ -1,7 +1,7 @@
 import { ObjectUtils } from "../Utils"
 
 import * as Http from "http";
-import { IExecutorContainer } from "../Containers";
+import { INodeContainer, Node } from "../Core";
 import { IResponse } from "./IResponse";
 import { IRequest } from "./IRequest";
 import { IHttpHeader } from "./IHttpHeader";
@@ -13,7 +13,7 @@ export class Response implements IResponse {
     header: IHttpHeader;
     body: IResponseBody;
     status: number;
-    traceStack: IExecutorContainer[];
+    traceStack: INodeContainer<Node>[];
 
     constructor(request: IRequest) {
         this.meta = request["$responseMeta"];

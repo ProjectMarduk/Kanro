@@ -26,4 +26,8 @@ export class File {
     static async readdir(path: string): Promise<string[]> {
         return await AsyncUtils.promise<string[]>(FileModule.readdir, undefined, path);
     }
+
+    static async symlink(path: string, target: string, type: string): Promise<void>{
+        return await AsyncUtils.promise<void>(FileModule.symlink, undefined, path, target, type);
+    }
 }

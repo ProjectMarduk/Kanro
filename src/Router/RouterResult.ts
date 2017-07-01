@@ -1,14 +1,15 @@
-import { IExecutorContainer } from "../Containers";
+import { INodeContainer } from "../Core";
 import { RouterKey } from "./RouterKey";
+import { Router } from "./Router";
 
 export class RouterResult {
     param: { [name: string]: string };
-    executor: IExecutorContainer;
+    node: INodeContainer<Router>;
     deep: number;
     routerStack: RouterKey[];
 
-    constructor(executor: IExecutorContainer, deep: number, routerStack: RouterKey[], param: { [name: string]: string } = {}) {
-        this.executor = executor;
+    constructor(node: INodeContainer<Router>, deep: number, routerStack: RouterKey[], param: { [name: string]: string } = {}) {
+        this.node = node;
         this.deep = deep;
         this.routerStack = routerStack;
         this.param = param;

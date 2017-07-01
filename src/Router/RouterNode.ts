@@ -1,7 +1,8 @@
-import { IExecutorContainer } from "../Containers";
+import { INodeContainer } from "../Core";
 import { StringUtils, ObjectUtils } from "../Utils";
 import { InvalidRouterConfigException } from "../Exceptions";
 import { Request } from "../Http"
+import { Router } from "./Router";
 import { RouterKey } from "./RouterKey";
 import { RouterResult } from "./RouterResult";
 import { RouterKeyType } from "./RouterKeyType";
@@ -9,7 +10,7 @@ import { RouterKeyType } from "./RouterKeyType";
 export class RouterNode {
     path: string;
     children: { [name: string]: RouterNode } = {};
-    executor: IExecutorContainer;
+    node: INodeContainer<Router>;
     routerKey: RouterKey;
 
 
@@ -20,17 +21,17 @@ export class RouterNode {
         }
     }
 
-    addRouter(executor: IExecutorContainer, routerKey: string) {
-        let keys = StringUtils.pathSplit(routerKey).reverse();
-        this.add(executor, keys);
+    addRouter(node: INodeContainer<Router>, routerKey: string) {
+        let keys = StringUtils.routerPathSplit(routerKey).reverse();
+        this.add(node, keys);
     }
 
-    private add(executor: IExecutorContainer, keys: string[]) {
+    private add(node: INodeContainer<Router>, keys: string[]) {
         if (keys.length == 0) {
-            if (this.executor != null) {
+            if (this.node != null) {
                 throw new InvalidRouterConfigException("Duplicate router config be provided.");
             }
-            this.executor = executor;
+            this.node = node;
             return;
         }
 
@@ -44,13 +45,13 @@ export class RouterNode {
             this.children[key] = new RouterNode(key);
         }
 
-        this.children[key].add(executor, keys);
+        this.children[key].add(node, keys);
     }
 
     matchRequest(request: Request, deep: number = 0, routerStack: RouterKey[] = [], param: { [name: string]: string } = {}): RouterResult[] {
         if (this.path == undefined) {
-            if (request.routerKey.length == deep && this.executor != undefined) {
-                return [new RouterResult(this.executor, deep, [], {})];
+            if (request.routerKey.length == deep && this.node != undefined) {
+                return [new RouterResult(this.node, deep, [], {})];
             }
             let results = [];
             for (let name in this.children) {
@@ -72,14 +73,14 @@ export class RouterNode {
                 param[this.routerKey.key] = key;
             }
             else if (this.routerKey.type == RouterKeyType.Wildcard && this.routerKey.key == "**") {
-                if (this.executor == undefined) {
+                if (this.node == undefined) {
                     return [];
                 }
-                return [new RouterResult(this.executor, deep, this.forkAndPopRouterStack(routerStack), param)];
+                return [new RouterResult(this.node, deep, this.forkAndPopRouterStack(routerStack), param)];
             }
 
-            if (deep >= request.routerKey.length - 1 && this.executor != undefined) {
-                return [new RouterResult(this.executor, deep, this.forkAndPopRouterStack(routerStack), param)];
+            if (deep >= request.routerKey.length - 1 && this.node != undefined) {
+                return [new RouterResult(this.node, deep, this.forkAndPopRouterStack(routerStack), param)];
             }
             else {
                 let results = [];

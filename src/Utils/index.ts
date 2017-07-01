@@ -1,4 +1,4 @@
 export * from "./AsyncUtils";
 export * from "./ObjectUtils";
 export * from "./StringUtils";
-export * from "./TypeUtils";
+export * from "./ExceptionUtils";

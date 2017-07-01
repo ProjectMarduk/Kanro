@@ -1,9 +1,9 @@
 import * as Http from "http";
-import { IExecutorContainer } from "../Containers";
 import { IHttpHeader } from "./IHttpHeader";
 import { IUrlQuery } from "./IUrlQuery";
 import { IHttpParam } from "./IHttpParam";
 import { IResponse } from "./IResponse";
+import { INodeContainer, Node } from "../Core";
 
 /**
  * A HTTP request.
@@ -56,12 +56,14 @@ export interface IRequest {
     param: IHttpParam;
 
     /**
-     * Executors which have handled this request, it is very useful for debug.
+     * Nodes which have handled this request, it is very useful for debug.
      * 
-     * @type {Config.IExecutorConfig[]}
+     * @type {INodeContainer<Node>[]}
      * @memberOf IRequest
      */
-    traceStack: IExecutorContainer[];
+    traceStack: INodeContainer<Node>[];
+
+    readonly relativeUrl: String;
 
     /**
      * Copy a request, but the copy of this request will not include meta information.

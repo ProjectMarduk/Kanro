@@ -8,7 +8,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Dev",
-            "program": "${workspaceRoot}/src/index.ts",
+            "program": "${workspaceRoot}/src/test.ts",
             "cwd": "${workspaceRoot}",
             "sourceMaps": true,
             "outFiles": [
@@ -24,7 +24,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Production",
-            "program": "${workspaceRoot}/src/index.ts",
+            "program": "${workspaceRoot}/src/test.ts",
             "cwd": "${workspaceRoot}",
             "sourceMaps": true,
             "outFiles": [

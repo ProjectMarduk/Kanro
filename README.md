@@ -1,63 +1,99 @@
 # Kanro
 Yet another backend framework
 
-## 简介
-Kanro 是一个基于 TypeScript/NodeJS 的轻量级的后端框架，采用完全模块化的设计，拥有非常高的拓展性和可塑性，从“微服务”演变而来，提供更加轻量级的解决方案。  
-在项目的初期就开始使用微服务框架基本是不太可能的，而在项目后期，如果在初期的时候没有一个好的后端框架设计，由单体应用转换为微服务的工作量是十分巨大的。  
-而Kanro 就是为了解决这种问题而诞生，Kanro 的模块化的设计思想让每个模块之间尽量的解耦和。任何一个模块都能单独提取出来，运行在另一个 Kanro 示例中，而无需任何的代码改动。
+# 简介
+Kanro 是一个基于 TypeScript/NodeJS 的 Web 后端框架，适用于一个纯粹的小型 API 服务应用，也可以将其拓展为十分庞大的微服务网络。其核心设计理念就是为小型 API 服务应用转型到大型后端应用，提供一个尽可能平滑的演变过程。
 
-## 快速开始
+# 快速开始
+## 使用 Quick Start 项目
+由于 Kanro 涉及到工具链比较复杂，任何一个环节出错都有可能导致出现问题，所以特地提供了一个 [Quick Start 项目](https://github.com/ProjectMarduk/Kanro.QuickStart)，使用这个项目可以很轻松的开始使用 Kanro 构建后端应用。
+
+### Node.js 环境
+Kanro 运行在 Node.js 上，所以首先需要准备 Node.js。
+从 https://nodejs.org/en/download/ 下载 NodeJS 安装程序，或者使用 apt-get, yum 等包管理器安装 NodeJS。推荐采用 [NVM](https://github.com/creationix/nvm) 来管理多版本的 Node.js。
+
+使用 `node -v` 与 `npm -v` 来检查是否安装成功。
+```PowerShell
+> node -v
+v6.11.0
+
+> npm -v
+3.10.10
+```
+### Typescript 工具链
+Kanro 使用 [Typescript](http://www.typescriptlang.org) 作为开发语言，所以也推荐 Kanro App 使用 Typescript 作为开发语言，当然也可以使用原生的 Node.js 做开发，但是总的来说还是推荐 Typescript。
+
+使用 `npm install typescript -g` 将 Typescript 安装到全局，通过 `tsc -v` 来检查安装是否成功。
+```PowerShell
+> tsc -v
+Version 2.3.4
+```
+### Clone quick start 项目
+使用 `git clone https://github.com/ProjectMarduk/Kanro.QuickStart.git` 或者在 Github 上直接下载 zip 包，并解压到本地，进入到项目目录中进行下一步操作。
+
 ### 准备工作
-01. 安装 NodeJS  
-从 https://nodejs.org/en/download/ 下载 NodeJS 安装程序，或者使用 apt-get, yum 等包管理器安装 NodeJS。使用 `node -v` 来检查是否安装成功。
-02. 安装 TypeScript  
-使用 `npm install typescript -g` 将 TypeScript 安装到全局，通过 `tsc -v` 来检查安装是否成功。
-03. 准备私有 npm 仓库  
-推荐使用 [verdaccio](https://github.com/verdaccio/verdaccio) 来创建私有 npm 仓库。  
-04. 创建一个 npm 项目  
-新建一个文件夹，使用 `npm init` 与 `tsc init` 来初始化一个空项目。  
+使用 `npm install` 安装项目所需要的依赖。默认依赖是 Kanro 与 Node 的 types 定义。
 
-### Hello World!
-01. 安装 Kanro  
-使用 `npm install kanro --save` 来未项目安装 Kanro。
-02. 在代码中创建 Kanro 应用  
-下面的代码创建一个默认的 Kanro 应用。  
-```TypeScript
-import { Kanro } from "kanro";
+建立 log 文件夹，用于存放日志。
 
-let app = new Kanro.Core.Application();
-app.main();
+建立 resource 文件夹，用于静态资源。
+
+运行 `tsc` 编译应用，生成编译后的 js 代码，存放在 bin 文件夹中。
+
+### Hello Kanro!
+使用 `npm start` 或者 `node bin/index.js` 来运行默认的 Kanro 应用。
+
+```PowerShell
+> npm start
+
+[07/04 01:21:47]  Kanro:App        - [·] Booting... +0ms
+[07/04 01:21:47]  Kanro:App        - [·] Create application context... +0ms
+[07/04 01:21:48]  Kanro:Config     - [·] Unspecified config, searching for configs... +317ms
+[07/04 01:21:48]  Kanro:App        - [·] Booting worker... +44ms
+[07/04 01:21:48]  Kanro:NPM        - [·] Set NPM registry to 'http://localhost:4873'. +32ms
+[07/04 01:21:48]  Kanro:Router     - [+] Router node '/' added. +4ms
+[07/04 01:21:48]  Kanro:Router     - [+] Router node '/public/**' added. +1ms
+[07/04 01:21:48]  Kanro:HTTP       - [+] Http server listening on '80'. +4ms
+[07/04 01:21:48]  Kanro:App        - [+] Kanro is ready. +0ms
 ```
-03. 编译 Kanro  
-运行 `tsc` 命令来编译 项目。
 
-04. 添加 DEBUG 环境变量来开启日志  
-*nix 使用 `export DEBUG=Kanro:*` 导入 DEBUG 环境变量，Windows 采用 `set DEBUG=Kanro:*` 导入 DEBUG 环境变量。
-
-05. 运行 Hello World
-使用 `node index.js` 来运行 Hello World 示例。  
-Kanro 会输出运行信息，如果看到 `Kanro is ready.` 则表示 Kanro 已经开始运行并侦听 HTTP 请求。
-
-```
-  Kanro:App       - [!] Booting... +0ms
-  Kanro:Config    - [!] Unspecified configs, searching for configs... +1ms
-  Kanro:App       - [!] Create application context... +105ms
-  Kanro:App       - [!] Booting HTTP server... +1ms
-  Kanro:App       - [!] Initializing... +3ms
-  Kanro:App       - [!] Check module status... +0ms
-  Kanro:HTTP      - [+] Http server listening on '80' +0ms
-  Kanro:NPM       - [!] Set NPM registry to 'http://localhost:4873'. +17ms
-  Kanro:App       - [!] Create services... +0ms
-  Kanro:App       - [!] Initializing executors... +1ms
-  Kanro:Router    - [+] Router node '/' added +1ms
-  Kanro:Router    - [+] Router node '/public/**' added +1ms
-  Kanro:App       - [+] Kanro is ready. +1ms
-```
-通过浏览器或者其他工具，请求 `http://127.0.0.1:80` 即可获得 Hello World 响应。
-```JSON
+### 测试访问
+访问 http://localhost/ 即可获取测试响应，访问 http://localhost/public/ 即可获取存放在 resource 文件夹的静态资源。
+```Json
 {
   "message": "Hello Kanro!"
 }
 ```
-## 其他介绍
-[Kanro - RESTful 后端框架（01）- 遇见 Kanro](http://blog.higan.me/kanro-restful-back-end-framework-1/)
+
+# Logging with Kanro
+Kanro 会在 `stdout` 与 `logger.json` 中指定的文件输出日志，stdout 中的支持彩色显示，文件中只有文本信息。
+## 基本 log 格式
+Kanro 的 Log 格式如下
+```PowerShell
+[07/04 01:21:47]  Kanro:App        - [·] Booting... +0ms
+```
+由 5 个部分组成：
+1. 最前面的是打印当前 log 的时间，取服务器本地时间，带有月份，日期与具体时间信息。
+2. 模块名，代表打印当前 log 的模块名，`Kanro:App` 代表由 Kanro 核心部分输出的 log，另外还有 `Kanro:Config` 用于打印配置相关的信息，`Kanro:HTTP` 用于打印 HTTP server 的状态与收到的请求日志。
+3. 日志 level 标志，`[·]` 表示这是一条 info 级别的日志，主要是输出一些状态信息与追踪。`[+]` 表示这是一条 success 级别的日志，主要是一些模块的 ready 报告。`[!]` 表示这是一条 warning 级别的日志，一般是表示可能进行了导致应用不稳定的操作。`[x]` 表示这是一条 error 级别的日志，一般是应用中出现了异常。
+4. 日志的内容，第四部分是日志的内容。
+5. 距离上一次输出日志经过的时间。
+
+## HTTP request log
+另外在 HTTP 模块中还会打印所有的访问纪录，和普通的日志一样也有 5 个部分，但是在日志内容中又划分了几个部分。
+```PowerShell
+[07/04 01:49:55]  Kanro:HTTP       - [·] GET / 200 1ms  +6.73s
+```
+1. 请求的方法，纪录请求的方法，比如 GET，POST 等。
+2. 请求的 url，会纪录请求的 URL
+3. 响应的状态码，会记录当前请求的状态码。
+4. 处理请求的耗时，会记录从收到请求到提供响应的所有耗时，并不包含网络耗时，所以会比实际的要小，可以用于诊断代码的效率问题。
+
+## 输出目标
+info 与 success 级别的日志会输出到 stdout 与 `logger.json` 的 logFile 中。
+warning 与 error 级别的日志会输出到 stderr 与 `logger.json` 的 logFile 和 errorFile 中。
+
+所以 logFile 保留了所有的日志输出，errorFile 用于监控错误的发生。
+
+# 其他介绍
+[Kanro:App - Quick start](http://blog.higan.me/quick-start-with-kanro/)

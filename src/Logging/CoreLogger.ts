@@ -1,5 +1,5 @@
 import * as FileStream from 'fs';
-import { Path } from "../IO";
+import { Path, File } from "../IO";
 import { StringUtils } from "../Utils/index";
 
 let projectDir = Path.resolve(__dirname, '../..');
@@ -11,9 +11,11 @@ export class CoreLogger {
 
     private constructor(logFile: string, errorFile: string) {
         if (logFile != undefined) {
+            File.createDirSync(Path.dirname(logFile));
             this.logFile = FileStream.createWriteStream(logFile, {'flags': 'a'});
         }
         if (errorFile != undefined) {
+            File.createDirSync(Path.dirname(errorFile));
             this.errorFile = FileStream.createWriteStream(errorFile, {'flags': 'a'});
         }
     }

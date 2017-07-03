@@ -1,5 +1,6 @@
 import { AsyncUtils } from "../Utils";
 import * as FileModule from "fs";
+import * as Path from "path";
 
 export class File {
     static async unlink(path: string | Buffer): Promise<void> {
@@ -27,7 +28,25 @@ export class File {
         return await AsyncUtils.promise<string[]>(FileModule.readdir, undefined, path);
     }
 
-    static async symlink(path: string, target: string, type: string): Promise<void>{
+    static async symlink(path: string, target: string, type: string): Promise<void> {
         return await AsyncUtils.promise<void>(FileModule.symlink, undefined, path, target, type);
+    }
+
+    static async createDir(path: string) {
+        if (await File.exists(path)) {
+            return;
+        }
+
+        await File.createDir(Path.dirname(path));
+        await AsyncUtils.promise<void>(FileModule.mkdir, undefined, path);
+    }
+
+    static createDirSync(path: string) {
+        if (FileModule.existsSync(path)) {
+            return;
+        }
+
+        File.createDirSync(Path.dirname(path));
+        FileModule.mkdirSync(path);
     }
 }

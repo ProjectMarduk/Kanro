@@ -1,11 +1,11 @@
+import { IModuleInfo, RequestHandler, RequestReplicator, RequestDiverter, ResponseHandler, INodeContainer, Service } from "./Core";
+
 /**
  * Config of Kanro APP.
  * 
  * @export
  * @interface IAppConfig
  */
-import { IModuleInfo, RequestHandler, RequestReplicator, RequestDiverter, ResponseHandler, INodeContainer, Service } from "./Core";
-
 export interface IAppConfig {
 
     /**
@@ -30,7 +30,11 @@ export interface IAppConfig {
      * @type {string}
      * @memberOf IAppConfig
      */
-    resource: string;
+    resource?: string;
+
+    cluster?: boolean;
+
+    rabbitMq?: string;
 
     /**
      * The http request entry point.
@@ -46,5 +50,5 @@ export interface IAppConfig {
      * @type {INodeContainer<ResponseHandler>}
      * @memberof IAppConfig
      */
-    exitPoint: INodeContainer<ResponseHandler>;
+    exitPoint?: INodeContainer<ResponseHandler>;
 }

@@ -70,4 +70,9 @@ export class StringUtils {
             return new String(obj);
         }
     }
+
+    static removeStyling(str: string): string {
+        let result = str.replace(/\[[0-9]+m/g, "");
+        return result;
+    }
 }

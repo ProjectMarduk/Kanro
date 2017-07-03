@@ -1,5 +1,5 @@
-
 import * as Npm from 'npm';
+import * as Cluster from "cluster";
 
 import { Path, File } from "./IO";
 import { Node, Service, INodeContainer, Module, IModuleInfo } from "./Core";
@@ -7,15 +7,24 @@ import { KanroModule } from "./KanroModule";
 import { NpmClient } from "./NpmClient";
 import { ExceptionUtils, ObjectUtils } from "./Utils";
 import { LoggerManager } from "./LoggerManager";
-import { Colors } from "./Logging";
+import { Colors, AnsiStyle } from "./Logging";
 import { IAppConfig } from "./IAppConfig";
+import { KanroException } from "./Exceptions/index";
 
-let moduleLogger = LoggerManager.current.registerLogger("Kanro:Module", Colors.blue);
+let moduleLogger = LoggerManager.current.registerLogger("Module", AnsiStyle.create().foreground(Colors.blue));
 
 export class ModuleManager {
     modules: { [name: string]: { [version: string]: Module } } = {};
+    private static localModules: { [name: string]: { [version: string]: Module } } = {};
 
-    registerModule(name: string, version: string, module: Module) {
+    registerLocalModule(name: string, version: string, module: Module) {
+        ExceptionUtils.throwIfInvalidModule(module);
+
+        this.registerModule(name, version, module);
+        ObjectUtils.setValueFormKeys(ModuleManager.localModules, module, name, version);
+    }
+
+    private registerModule(name: string, version: string, module: Module) {
         ExceptionUtils.throwIfInvalidModule(module);
 
         if (name == 'kanro' && !(module instanceof KanroModule)) {
@@ -174,8 +183,7 @@ export class ModuleManager {
                 try {
                     await node.instance.onLoaded();
                 } catch (error) {
-                    //TODO:
-                    throw new Error("A exception has been threw by 'node.onLoaded' event.");
+                    throw new KanroException("A exception has been threw by 'node.onLoaded' event.", error);
                 }
             }
         }
@@ -223,8 +231,7 @@ export class ModuleManager {
                 try {
                     await node.instance.onDependenciesFilled();
                 } catch (error) {
-                    //TODO:
-                    throw new Error("A exception has been threw by 'node.onLoaded' event.");
+                    throw new KanroException("A exception has been threw by 'node.onDependenciesFilled' event.", error);
                 }
             }
         }
@@ -259,16 +266,28 @@ export class ModuleManager {
         let missedModule = 0;
         let allNodeFilled = true;
 
-        do {
-            missedModule = 0;
-            allNodeFilled = true;
 
-            missedModule += await this.installMissedModule(config.entryPoint);
-            missedModule += await this.installMissedModule(config.exitPoint);
+        if (Cluster.isMaster) {
+            do {
+                missedModule = 0;
+                allNodeFilled = true;
 
+                missedModule += await this.installMissedModule(config.entryPoint);
+                missedModule += await this.installMissedModule(config.exitPoint);
+
+                allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.entryPoint);
+                allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.exitPoint);
+            } while ((missedModule == 0) && allNodeFilled);
+        }
+        else {
             allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.entryPoint);
             allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.exitPoint);
-        } while ((missedModule == 0) && allNodeFilled);
+
+            if (!allNodeFilled) {
+                //TODO:
+                throw new Error();
+            }
+        }
     }
 
     static async initialize(config: IAppConfig): Promise<ModuleManager> {
@@ -278,8 +297,25 @@ export class ModuleManager {
 
         let result = new ModuleManager();
 
-        await NpmClient.initialize(config);
+        if (Cluster.isMaster) {
+            await NpmClient.initialize(config);
+        }
         ModuleManager.instance = result;
         return result;
+    }
+
+    async reloadConfig(config: IAppConfig) {
+        try {
+            let result = new ModuleManager();
+            for (let name in ModuleManager.localModules) {
+                for (let version in ModuleManager.localModules[name]) {
+                    result.registerModule(name, version, ModuleManager.localModules[name][version]);
+                }
+            }
+            await result.loadConfig(config);
+            ModuleManager.instance = result;
+        } catch (error) {
+            moduleLogger.error('Reload config fail, operation will be canceled.')
+        }
     }
 }

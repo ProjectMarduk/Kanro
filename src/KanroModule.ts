@@ -5,12 +5,6 @@ import { KanroManager } from "./KanroManager";
 import { Application } from "./Application";
 
 export class KanroModule extends Module {
-    private app: Application;
-
-    constructor(app: Application) {
-        super();
-        this.app = app;
-    }
 
     async getNode(container: INodeContainer<Node>): Promise<Node> {
         switch (container.name) {
@@ -25,7 +19,7 @@ export class KanroModule extends Module {
             case MethodRouter.name:
                 return new MethodRouter(<any>container);
             case KanroManager.name:
-                return new KanroManager(this.app);
+                return new KanroManager();
             default:
                 return undefined;
         }

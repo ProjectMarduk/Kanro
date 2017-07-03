@@ -1,31 +1,27 @@
 import { Service } from "./Core";
 import { IAppConfig } from "./IAppConfig";
-import { Logger, Colors } from "./Logging";
+import { Logger, Colors, AnsiStyle, ILogger } from "./Logging";
 import { LoggerManager } from "./LoggerManager";
 import { Application } from "./Application";
 
 export class KanroManager extends Service {
-    private app: Application;
-
-
     public get application(): Application {
-        return this.app;
+        return Application.current;
     }
 
-    constructor(app: Application) {
+    constructor() {
         super({ name: KanroManager.name, module: { name: "kanro", version: "*" } });
-        this.app = app;
     }
 
     async reloadConfigs(configs: IAppConfig): Promise<void> {
-        this.app.reloadConfigs(configs);
+        Application.current.reloadConfigs(configs);
     }
 
     getKanroConfig(key: string): any {
-        return this.app.config[key];
+        return Application.current.config[key];
     }
 
-    registerLogger(namespace: string, color: Colors): Logger {
-        return LoggerManager.current.registerLogger(namespace, color);
+    registerLogger(namespace: string, style: AnsiStyle): ILogger {
+        return LoggerManager.current.registerLogger(namespace, style);
     }
 }

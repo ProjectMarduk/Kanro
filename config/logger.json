@@ -1,0 +1,4 @@
+{
+    "logFile": "log/kanro.log",
+    "errorFile": "log/kanro.error.log"
+}

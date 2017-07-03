@@ -1,7 +1,9 @@
 {
+    "$schema": "http://higan.me/schema/1.1/kanro.json",
     "port": 80,
     "registry": "http://localhost:4873",
     "resource": "./resource",
+    "cluster": true,
     "entryPoint": {
         "name": "Router",
         "module": {
@@ -22,6 +24,23 @@
                 },
                 "response": {
                     "message": "Hello Kanro!"
+                }
+            }
+        },
+        "/test/*": {
+            "name": "MethodRouter",
+            "module": {
+                "name": "kanro",
+                "version": "*"
+            },
+            "GET": {
+                "name": "JsonRenderer",
+                "module": {
+                    "name": "kanro",
+                    "version": "*"
+                },
+                "response": {
+                    "message": "Hello Test!"
                 }
             }
         },

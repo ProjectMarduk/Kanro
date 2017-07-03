@@ -4,7 +4,7 @@ export class ObjectUtils {
             return <any>[].concat(object);
         }
 
-        return { ... <any>object };
+        return JSON.parse(JSON.stringify(object));
     }
 
     static isEmptyObject(obj) {

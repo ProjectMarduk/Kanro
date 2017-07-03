@@ -1,7 +1,7 @@
 import { Colors } from "./Colors";
 
 export class AnsiStyle {
-    private styleString = "";
+    public styleString = "";
     private styleEnable = true;
 
     public bold(): AnsiStyle {
@@ -49,7 +49,7 @@ export class AnsiStyle {
     }
 
     public styling(string: string): string {
-        if(!this.styleEnable){
+        if (!this.styleEnable) {
             return string;
         }
         return this.styleString + string + '\x1b[0m';
@@ -60,12 +60,14 @@ export class AnsiStyle {
         return this;
     }
 
-    public enable(styleEnable = true): AnsiStyle{
-        this.styleEnable  = styleEnable;
+    public enable(styleEnable = true): AnsiStyle {
+        this.styleEnable = styleEnable;
         return this;
     }
 
-    public static create() {
-        return new AnsiStyle();
+    public static create(str: string = '') {
+        let result = new AnsiStyle();
+        result.styleString = str;
+        return result;
     }
 }

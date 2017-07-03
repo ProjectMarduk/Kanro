@@ -4,7 +4,7 @@ import { Colors, Style, AnsiStyle } from "./Logging";
 import { AsyncUtils } from "./Utils";
 import { File, Path } from "./IO";
 
-let npmLogger = LoggerManager.current.registerLogger("Kanro:NPM", Colors.cyan);
+let npmLogger = LoggerManager.current.registerLogger("NPM", AnsiStyle.create().foreground(Colors.cyan));
 
 export class NpmClient {
     public static async install(name: String, version: String = '*'): Promise<any> {

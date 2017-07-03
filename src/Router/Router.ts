@@ -1,10 +1,11 @@
+import * as Cluster from "cluster";
 import { Node, RequestDiverter, INodeContainer } from "../Core";
 import { IRequest, Request } from "../Http";
 import { NotFoundException } from "../Exceptions";
 import { IModuleInfo, Service } from "../Core";
 import { RouterResult } from "./RouterResult";
 import { RouterNode } from "./RouterNode";
-import { Logger, Colors } from "../Logging";
+import { Logger, Colors, AnsiStyle, ILogger } from "../Logging";
 import { KanroManager } from "..";
 
 export class Router extends RequestDiverter {
@@ -41,7 +42,7 @@ export class Router extends RequestDiverter {
     $preRouters: string;
     dependencies: { [name: string]: Service | IModuleInfo; } = { KanroManager: { name: "kanro", version: "*" } };
     container: INodeContainer<RequestDiverter>;
-    logger: Logger;
+    logger: ILogger;
 
     constructor(container: INodeContainer<RequestDiverter>) {
         super(container);
@@ -50,7 +51,7 @@ export class Router extends RequestDiverter {
     }
 
     async onDependenciesFilled() {
-        this.logger = (<KanroManager>this.dependencies.KanroManager).registerLogger("Kanro:Router", Colors.red);
+        this.logger = (<KanroManager>this.dependencies.KanroManager).registerLogger("Router", AnsiStyle.create().foreground(Colors.red));
 
         this.container.next = [];
         this.node = new RouterNode(undefined);
@@ -63,7 +64,10 @@ export class Router extends RequestDiverter {
                         continue;
                     }
                 }
-               this.logger.success(`Router node '${this.$preRouters}${name}' added`);
+
+                if (Cluster.isMaster) {
+                    this.logger.success(`Router node '${this.$preRouters}${name}' added.`);
+                }
             }
         }
     }

@@ -22,7 +22,6 @@ export class FileRenderer extends Responder {
     }
 
     dependencies = { KanroManager: { name: "kanro", version: "*" } };
-    response: any;
     resource: string;
 
     constructor(config: FileRendererContainer) {

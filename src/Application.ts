@@ -60,6 +60,8 @@ export class Application {
 
     async run(config?: IAppConfig, localModules: { module: Module, name: string, version: string }[] = []) {
         try {
+            localModules.push({ name: "kanro", version: "*", module: new KanroModule() });
+            
             if (Cluster.isMaster) {
                 this.helloKanro();
                 AppLogger.info("Booting...");

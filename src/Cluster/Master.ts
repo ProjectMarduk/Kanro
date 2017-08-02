@@ -89,17 +89,15 @@ export class Master {
         return this.configMeta;
     }
 
-    async run(config: IAppConfig, localModules: { module: Module, name: string, version: string }[]) {
+    async run(config: IAppConfig, localModules: { module: Module, name: string, version: string }[] = []) {
         this.configMeta = ObjectUtils.copy(config);
 
         if (config.cluster != undefined && config.cluster) {
             AppLogger.info("Pre-initialize module manager...");
             await ModuleManager.initialize(config);
-            ModuleManager.current.registerLocalModule('kanro', '*', new KanroModule());
             for (let localModule of localModules) {
                 ModuleManager.current.registerLocalModule(localModule.name, localModule.version, localModule.module);
             }
-
             AppLogger.info("Install module and fill nodes...");
             await ModuleManager.current.loadConfig(config);
 

@@ -32,6 +32,11 @@ export class Worker {
     }
 
     async run(config: IAppConfig, localModules: { module: Module, name: string, version: string }[]) {
+            await ModuleManager.initialize(config);
+        for (let localModule of localModules) {
+            ModuleManager.current.registerLocalModule(localModule.name, localModule.version, localModule.module);
+        }
+
         if (Cluster.isWorker) {
             process.on('message', data => {
                 this.messageReceived(data);
@@ -48,9 +53,6 @@ export class Worker {
         this.appConfig = config;
 
         if (ModuleManager.current == undefined) {
-            await ModuleManager.initialize(config);
-            ModuleManager.current.registerLocalModule('kanro', '*', new KanroModule());
-            
             await ModuleManager.current.loadConfig(config);
         }
         else {

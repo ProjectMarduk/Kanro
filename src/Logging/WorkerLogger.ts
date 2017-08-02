@@ -1,5 +1,4 @@
 import * as Cluster from "cluster";
-import * as MessageQueue from "amqplib/callback_api";
 import { ILogger } from "./ILogger";
 import { AnsiStyle } from "./AnsiStyle";
 import { Application } from "../Application";

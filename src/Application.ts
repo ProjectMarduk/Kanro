@@ -2,21 +2,24 @@ import * as Http from "http";
 import * as Cluster from "cluster";
 import * as OS from "os";
 
-import { RequestMirror, Request, Response } from "./Http";
+import { RequestMirror, Request, Response, RequestContext } from "./Http";
 import { NotFoundException, NonstandardNodeException, NodeNotSupportedException } from "./Exceptions";
 import { UnexpectedNodeException } from "./Exceptions/UnexpectedNodeException";
 import { LoggerManager } from "./LoggerManager";
 import { ModuleManager } from "./ModuleManager";
-import { INodeContainer, Node, RequestHandler, RequestDiverter, RequestReplicator, Responder, ResponseHandler, ExceptionHandler, Fuse, Module } from "./Core";
+import { IModuleInfo, INodeContainer, Node, RequestHandler, RequestDiverter, RequestReplicator, Responder, ResponseHandler, ExceptionHandler, Fuse, Module, Service } from "./Core";
 import { IAppConfig } from "./IAppConfig";
-import { Colors, Style, AnsiStyle, LogLevel, Logger } from "./Logging";
+import { Colors, Style, AnsiStyle, LogLevel, Logger, ILogger } from "./Logging";
 import { ConfigBuilder } from "./ConfigBuilder";
 import { KanroModule } from "./KanroModule";
-import { AppLogger } from "./AppLogger";
 import { Master } from "./Cluster/Master";
 import { Worker } from "./Cluster/Worker";
-
-let clusterLogger = LoggerManager.current.registerLogger("Cluster", AnsiStyle.create().foreground(Colors.cyan));
+import { KanroInternalModule } from "./KanroInternalModule";
+import { version } from "punycode";
+import { ObjectUtils } from "./Utils";
+import { HttpServer } from "./HttpServer";
+import { NodeHandler } from "./NodeHandler";
+import { NpmClient } from "./NpmClient";
 
 export enum HttpMethod {
     get = Colors.green,
@@ -26,8 +29,59 @@ export enum HttpMethod {
     patch = Colors.yellow
 }
 
-export class Application {
-    private httpServer: Http.Server;
+export class Application extends Service {
+    dependencies = {
+        loggerManager: {
+            name: LoggerManager.name,
+            module: KanroInternalModule.moduleInfo
+        },
+        configBuilder: {
+            name: ConfigBuilder.name,
+            module: KanroInternalModule.moduleInfo
+        },
+        moduleManager: {
+            name: ModuleManager.name,
+            module: KanroInternalModule.moduleInfo
+        },
+        httpServer: {
+            name: HttpServer.name,
+            module: KanroInternalModule.moduleInfo
+        },
+        npmClient: {
+            name: NpmClient.name,
+            module: KanroInternalModule.moduleInfo
+        }
+    }
+
+    constructor(config?: IAppConfig, localModules: { module: Module, name: string, version: string }[] = []) {
+        super(undefined);
+        this.configMeta = config;
+        this.localModules = localModules;
+    }
+
+    private isBooted: boolean = false;
+    private configMeta: IAppConfig;
+    private runtimeContext: IAppConfig;
+    private localModules: { module: Module, name: string, version: string }[];
+    private get configBuilder(): ConfigBuilder {
+        return this.getDependedService<ConfigBuilder>("configBuilder");
+    }
+    private get moduleManager(): ModuleManager {
+        return this.getDependedService<ModuleManager>("moduleManager");
+    }
+    private get npmClient(): NpmClient {
+        return this.getDependedService<NpmClient>("npmClient");
+    }
+    private get httpServer(): HttpServer {
+        return this.getDependedService<HttpServer>("httpServer");
+    }
+
+    async onLoaded(): Promise<void> {
+        this.appLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("App", AnsiStyle.create().foreground(Colors.magenta));
+        this.clusterLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("Cluster", AnsiStyle.create().foreground(Colors.cyan));
+    }
+    private appLogger: ILogger;
+    private clusterLogger: ILogger;
 
     public die(error: Error, module: String) {
         let stackInfo = error.stack;
@@ -37,8 +91,12 @@ export class Application {
             stackInfo += `\n With inner exception '${error.name}'\n    ${error.stack}`;
         }
 
-        AppLogger.error(`A catastrophic failure occurred in 'Kanro:${module}'\n    ${stackInfo}`)
+        this.appLogger.error(`A catastrophic failure occurred in 'Kanro:${module}'\n    ${stackInfo}`)
         process.exit(-1);
+    }
+
+    public get isProxable() {
+        return false;
     }
 
     private helloKanro() {
@@ -58,69 +116,109 @@ export class Application {
         console.log("");
     }
 
-    async run(config?: IAppConfig, localModules: { module: Module, name: string, version: string }[] = []) {
+    async run() {
         try {
-            if (Cluster.isMaster) {
-                this.helloKanro();
-                AppLogger.info("Booting...");
-
-                AppLogger.info("Create application context...");
-                await ConfigBuilder.initialize();
-
-                if (config == undefined) {
-                    config = await ConfigBuilder.readConfig(config);
-                }
-
-                await Master.current.run(config, localModules);
-            }
-            else {
-                await Worker.current.run(config, localModules);
-            }
-
+            await this.boot();
         } catch (error) {
             this.die(error, "App");
         }
     }
 
-    async reloadConfigs(config?: IAppConfig) {
+    async reloadConfigs(config?: IAppConfig): Promise<Application> {
+        if (!this.isBooted) {
+            await this.workerBoot(config);
+            return this;
+        }
+
         try {
             if (Cluster.isMaster) {
-                AppLogger.info("Reload configs...");
-
-                AppLogger.info("Create application context...");
-                if (config == undefined) {
-                    config = await ConfigBuilder.readConfig();
-                }
-
-                await Master.current.reloadConfig(config);
+                this.appLogger.info("Rebuild application context...");
             }
-            else {
-                if (config == undefined) {
-                    config = await ConfigBuilder.readConfig();
-                }
-                process.send({ type: 'config', config: config });
-            }
+
+            let newApp = new Application(config, this.localModules);
+            await newApp.boot(this);
+            return newApp;
         } catch (error) {
-            AppLogger.error(`An exception occurred in reload config, operation have been cancelled, message: '${error.message}'`);
+            this.appLogger.error(`An exception occurred in reload config, operation have been cancelled, message: '${error.message}'`);
         }
     }
 
     public get config(): Readonly<IAppConfig> {
+        return this.configMeta;
+    }
+
+    private async initializeInternalModule() {
+        let internalModule = new KanroInternalModule(this);
+        await internalModule.moduleManager.initialize(internalModule);
+        await internalModule.configBuilder.initialize();
+    }
+
+    private registerLocalModules(localModules: { module: Module, name: string, version: string }[] = []) {
+        for (const localModule of localModules) {
+            this.moduleManager.registerLocalModule(localModule.name, localModule.version, localModule.module)
+        }
+    }
+
+    private async entryPointe(context: RequestContext) {
+        context = await NodeHandler(context, this.runtimeContext.entryPoint);
+        context = await NodeHandler(context, this.runtimeContext.exitPoint);
+        return context;
+    }
+
+    private async boot(application?: Application) {
         if (Cluster.isMaster) {
-            return Master.current.config;
+            if(application == undefined){
+                this.helloKanro();
+            }
+            this.isBooted = true;
+            await this.initializeInternalModule();
+            this.appLogger.info("Booting...");
+
+            this.appLogger.info("Load application config...");
+            this.configMeta = await this.configBuilder.readConfig(this.configMeta);
+            this.runtimeContext = ObjectUtils.copy(this.config);
+
+            if (this.config.cluster) {
+                this.appLogger.info("Register local modules...");
+                this.registerLocalModules(this.localModules);
+
+                this.appLogger.info("Install module and fill nodes...");
+                await this.moduleManager.loadConfig(this.runtimeContext);
+
+                await (new Master(this, this.clusterLogger, this.appLogger)).run();
+                this.appLogger.info("Kanro is ready.");
+            }
+            else {
+                this.appLogger.info("Register local modules...");
+                this.registerLocalModules(this.localModules);
+
+                this.appLogger.info("Install module and fill nodes...");
+                await this.moduleManager.loadConfig(this.runtimeContext);
+
+                let oldHttpServer = ObjectUtils.getValueFormKeys(application, "httpServer");
+                await this.httpServer.initialize(this.config.port, async (context) => {
+                    return await this.entryPointe(context)
+                }, oldHttpServer);
+
+                this.appLogger.info("Kanro is ready.");
+            }
         }
-        return Worker.current.config;
+        else {
+            await this.initializeInternalModule();
+            this.appLogger.info("Booting worker...");
+            await (new Worker(this, this.clusterLogger, this.appLogger)).run();
+        }
     }
 
-    private constructor() {
-    }
-
-    private static instance: Application;
-
-    static get current(): Application {
-        if (Application.instance == undefined) {
-            Application.instance = new Application();
-        }
-        return Application.instance;
+    async workerBoot(config: IAppConfig) {
+        this.isBooted = true;
+        this.configMeta = await this.configBuilder.readConfig(config);
+        this.runtimeContext = ObjectUtils.copy(this.config);
+        this.registerLocalModules(this.localModules);
+        await this.moduleManager.loadConfig(this.runtimeContext);
+        await this.httpServer.initialize(this.config.port, async (context) => {
+            return await this.entryPointe(context)
+        });
+        this.appLogger.info(`Worker ${Cluster.worker.id} is ready.`);
     }
 }

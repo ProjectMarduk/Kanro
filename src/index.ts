@@ -1,4 +1,3 @@
-
 export * from "./Application";
 export * from "./KanroManager";
 import * as Core from "./Core";
@@ -7,6 +6,7 @@ import * as Http from "./Http";
 import * as IO from "./IO";
 import * as Logging from "./Logging";
 import * as Router from "./Router";
+import * as Remote from "./Remote";
 import * as Utils from "./Utils";
 import * as Primitives from "./Primitives";
 

@@ -1,8 +1,13 @@
 import * as Cluster from "cluster";
 import { Logger, Colors, AnsiStyle, ILogger, WorkerLogger } from "./Logging";
+import { Service } from "./Core";
 
-export class LoggerManager {
+export class LoggerManager extends Service{
     private loggers: { [namespace: string]: ILogger } = {};
+
+    public get isProxable(){
+        return false;
+    }
 
     registerLogger(namespace: string, style?: AnsiStyle): ILogger {
         if (this.loggers[namespace] == undefined) {
@@ -20,15 +25,7 @@ export class LoggerManager {
         return this.loggers[namespace];
     }
 
-    private constructor() {
-    }
-
-    private static instance: LoggerManager;
-    public static get current() {
-        if (LoggerManager.instance == undefined) {
-            LoggerManager.instance = new LoggerManager();
-        }
-
-        return LoggerManager.instance;
+    constructor() {
+        super(undefined);
     }
 }

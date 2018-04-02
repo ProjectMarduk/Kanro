@@ -10,3 +10,4 @@ export * from "./Service";
 export * from "./Module";
 export * from "./IModuleInfo";
 export * from "./INodeContainer";
+export * from "./INodeReference";

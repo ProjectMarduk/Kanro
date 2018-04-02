@@ -1,8 +1,9 @@
-import { Responder, INodeContainer } from "../Core";
+import { Responder, INodeContainer, IModuleInfo } from "../Core";
 import { File } from "../IO";
 import { IRequest, IResponse, JsonResponseBody, Request, FileResponseBody } from "../Http";
 import { NotFoundException } from "../Exceptions";
 import { KanroManager } from "..";
+import { KanroModule } from "../KanroModule";
 
 export interface FileRendererContainer extends INodeContainer<FileRenderer> {
     resource: string;
@@ -21,7 +22,7 @@ export class FileRenderer extends Responder {
         throw new NotFoundException();
     }
 
-    dependencies = { KanroManager: { name: "kanro", version: "*" } };
+    dependencies = { kanroManager: { name: KanroManager.name, module: KanroModule.moduleInfo } };
     resource: string;
 
     constructor(config: FileRendererContainer) {
@@ -35,9 +36,9 @@ export class FileRenderer extends Responder {
         }
     }
 
-    async onDependenciesFilled() {
+    async onLoaded() {
         if(this.resource == undefined){
-            this.resource = (<KanroManager><any>this.dependencies.KanroManager).getKanroConfig('resource');
+            this.resource = this.getDependedService<KanroManager>("kanroManager").getKanroConfig('resource');
         }
 
         if(this.resource == undefined){

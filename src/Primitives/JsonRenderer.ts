@@ -10,7 +10,7 @@ export class JsonRenderer extends Responder {
     async respond(request: IRequest): Promise<IResponse> {
         let response = request.respond();
         response.status = 200;
-        response.body = new StringResponseBody("Hello world.");
+        response.body = new JsonResponseBody(this.response);
         return response;
     }
 

@@ -1,58 +1,69 @@
 import * as Http from "http";
-import { RequestContext } from "./RequestContext";
-import { Request } from "./Http";
-import { INodeContainer, Node } from "./Core/index";
+import { Request, IHttpRequestHandler, RequestContext, Server } from "./Http";
+import { INodeContainer, Node, Service, IModuleInfo } from "./Core";
 import { LoggerManager } from "./LoggerManager";
-import { AnsiStyle, Colors, Style } from "./Logging/index";
+import { AnsiStyle, Colors, Style, ILogger } from "./Logging";
 import { Application, HttpMethod } from "./Application";
+import { KanroInternalModule } from "./KanroInternalModule";
 
-let httpLogger = LoggerManager.current.registerLogger("HTTP", AnsiStyle.create().foreground(Colors.yellow));
-
-export interface IHttpRequestHandler {
-    (context: RequestContext): Promise<RequestContext>;
-}
-
-export class HttpServer {
-    private httpServer: Http.Server;
+export class HttpServer extends Service {
+    private httpServer: Server;
     private handler: IHttpRequestHandler;
+    private port: number;
+    private preHttpServer: HttpServer;
 
-    private constructor() {
+    dependencies = {
+        loggerManager: {
+            name: LoggerManager.name,
+            module: KanroInternalModule.moduleInfo
+        },
+        application: {
+            name: Application.name,
+            module: KanroInternalModule.moduleInfo
+        }
     }
 
-    private static instance: HttpServer;
-
-    static get current(): HttpServer {
-        return HttpServer.instance;
+    public get isProxable() {
+        return false;
     }
 
-    static async initialize(port: number, handler: IHttpRequestHandler): Promise<HttpServer> {
-        if (HttpServer.instance != undefined) {
-            return HttpServer.instance;
+    constructor() {
+        super(undefined);
+    }
+
+    async onLoaded(): Promise<void> {
+        this.httpLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("HTTP", AnsiStyle.create().foreground(Colors.yellow));
+    }
+
+    private get application(): Application {
+        return this.getDependedService<Application>("application");
+    }
+    private httpLogger: ILogger;
+
+    async initialize(port: number, handler: IHttpRequestHandler, httpServer?: HttpServer): Promise<HttpServer> {
+        this.port = port;
+        this.handler = handler;
+        this.preHttpServer = httpServer;
+
+        if (httpServer != undefined && httpServer.port == port) {
+            this.httpLogger.info(`Hot swapping http server...`);
+            this.httpServer = httpServer.httpServer;
+            this.httpServer.hotSwap(async (request, response) => {
+                await this.entryPoint(request, response);
+            }, async (name, error) => {
+                await this.eventHandler(name, error);
+            });
+        }
+        else {
+            this.httpServer = new Server(port, async (request, response) => {
+                await this.entryPoint(request, response);
+            }, async (name, error) => {
+                await this.eventHandler(name, error);
+            })
+            await this.httpServer.startListen();
         }
 
-        HttpServer.instance = new HttpServer();
-        HttpServer.instance.handler = handler;
-
-        await new Promise<void>((res, rej) => {
-            HttpServer.instance.httpServer = Http.createServer(async (request, response) => {
-                HttpServer.instance.entryPoint(request, response);
-            });
-            HttpServer.instance.httpServer.on('error', (err) => {
-                httpLogger.error(`Error in http server, message: '${err.message}'`);
-                Application.current.die(err, "HTTP");
-            });
-            HttpServer.instance.httpServer.on('listening', (err) => {
-                if (err) {
-                    httpLogger.error(`Create http server fail, message: '${err.message}'`);
-                    Application.current.die(err, "HTTP");
-                }
-                httpLogger.success(`Http server listening on '${port}'.`);
-                res();
-            });
-            HttpServer.instance.httpServer.listen(port);
-        });
-
-        return HttpServer.instance;
+        return this;
     }
 
     private async entryPoint(request: Http.IncomingMessage, response: Http.ServerResponse) {
@@ -82,12 +93,39 @@ export class HttpServer {
         } catch (error) {
             response.statusCode = 500;
             response.end();
-            httpLogger.error(`Uncaught exception thrown in HTTP handler, message :'${error.message}'`)
+            this.httpLogger.error(`Uncaught exception thrown in HTTP handler, message :'${error.message}'`)
         }
 
-        httpLogger.info(this.buildHttpLogMessage(context));
+        this.httpLogger.info(this.buildHttpLogMessage(context));
     }
 
+    private async eventHandler(name, error) {
+        switch (name) {
+            case "error":
+                this.httpLogger.error(`Error in http server, message: '${error.message}'`);
+                this.application.die(error, "HTTP");
+                break;
+            case "listening":
+                if (error) {
+                    this.httpLogger.error(`Create http server fail, message: '${error.message}'`);
+                    this.application.die(error, "HTTP");
+                }
+                this.httpLogger.success(`Http server listening on '${this.port}'.`);
+
+                if (!error && this.preHttpServer != undefined) {
+                    this.httpLogger.info(`Deprecated http server will be closed in 1 minute.`);
+                    setTimeout(() => {
+                        this.preHttpServer.httpServer.close();
+                        this.preHttpServer = null;
+                    }, 60000);
+                }
+                break;
+            case "close":
+                this.httpLogger.info(`Deprecated http server on '${this.port}' closed.`);
+                
+                break;
+        }
+    }
 
     private buildHttpLogMessage(context: RequestContext) {
         let methodColor: Colors;

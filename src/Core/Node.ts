@@ -1,6 +1,7 @@
 import { IModuleInfo } from "./IModuleInfo";
 import { INodeContainer } from "./INodeContainer";
 import { Service } from "./Service";
+import { INodeReference } from "./INodeReference";
 
 /**
  * A node which can be used in Kanro.
@@ -15,12 +16,12 @@ export abstract class Node {
      * 
      * If a named 'undefined' property in this object, Kanro will find service in all loaded module and set service instance to property.
      * 
-     * If a named 'IModuleInfo' property in this object, Kanro will find service in specified module and set service instance to property.
+     * If a named 'INodeContainer<Service>' property in this object, Kanro will find service in specified module and set service instance to property.
      * 
-     * @type {({ [name: string]: Service | IModuleInfo; })}
+     * @type {({ [name: string]: Service | INodeContainer<Service>; })}
      * @memberof Node
      */
-    dependencies: { [name: string]: Service | IModuleInfo; };
+    dependencies: { [name: string]: Service | INodeContainer<Service>; } = {};
 
     /**
      * Name of node, it will return class name by default.
@@ -47,7 +48,7 @@ export abstract class Node {
      * @returns {Promise<void>} 
      * @memberof Node
      */
-    public async onLoaded(): Promise<void> {
+    public async onCreated(): Promise<void> {
 
     }
 
@@ -57,7 +58,11 @@ export abstract class Node {
      * @returns {Promise<void>} 
      * @memberof Node
      */
-    public async onDependenciesFilled(): Promise<void> {
+    public async onLoaded(): Promise<void> {
 
+    }
+
+    public getDependedService<T extends Service>(name: string): T{
+        return <T><any>this.dependencies[name];
     }
 }

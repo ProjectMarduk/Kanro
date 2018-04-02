@@ -28,3 +28,4 @@ export * from "./InvalidNodeException";
 export * from "./InvalidModuleException";
 export * from "./InvalidRouterConfigException";
 export * from "./NonstandardNodeException";
+export * from "./RemoteServiceException";

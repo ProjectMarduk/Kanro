@@ -10,6 +10,10 @@ import { INodeContainer } from "./INodeContainer";
  * @extends {Node}
  */
 export abstract class Service extends Node {
+    public get isProxable(): boolean{
+        return true;
+    }
+
     constructor(container: INodeContainer<Service>) {
         super(container);
     }

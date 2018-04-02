@@ -40,6 +40,22 @@
                 }
             }
         },
+        "/remote": {
+            "name": "ServiceProxy",
+            "module": {
+                "name": "kanro",
+                "version": "*"
+            },
+            "dependencies": {
+                "target": {
+                    "name": "TestService",
+                    "module": {
+                        "name": "test",
+                        "version": "*"
+                    }
+                }
+            }
+        },
         "exceptionHandlers": [
             {
                 "name": "HttpExceptionRenderer",

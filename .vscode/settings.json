@@ -26,5 +26,8 @@
             "url": "./schema/services.json"
         }
     ],
-    "vsicons.presets.angular": false
+    "vsicons.presets.angular": false,
+    "cSpell.words": [
+        "Proxable"
+    ]
 }

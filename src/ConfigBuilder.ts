@@ -4,15 +4,33 @@ import { Path, File } from './IO';
 import { InvalidConfigException } from './Exceptions';
 import { IAppConfig } from './IAppConfig';
 import { LoggerManager } from "./LoggerManager";
-import { Colors, AnsiStyle } from "./Logging";
+import { Colors, AnsiStyle, ILogger } from "./Logging";
 import { Router } from "./Router";
+import { Service, IModuleInfo } from './Core';
+import { KanroInternalModule } from './KanroInternalModule';
 
 let projectDir = Path.resolve(__dirname, '..');
-let ajv = Ajv();
-let configLogger = LoggerManager.current.registerLogger("Config", AnsiStyle.create().foreground(Colors.green));
 
-export class ConfigBuilder {
-    static async initialize() {
+export class ConfigBuilder extends Service {
+    dependencies = {
+        loggerManager: {
+            name: LoggerManager.name,
+            module: KanroInternalModule.moduleInfo
+        }
+    }
+
+    private ajv = Ajv();
+
+    constructor() {
+        super(undefined);
+    }
+
+    async onLoaded(): Promise<void> {
+        this.configLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("Config", AnsiStyle.create().foreground(Colors.green));
+    }
+    private configLogger: ILogger;
+
+    async initialize() {
         try {
             let result = await new Promise<any>((res, rej) => {
                 Request.get("http://higan.me/schema/1.1/kanro.json", (error, response, body) => {
@@ -24,51 +42,51 @@ export class ConfigBuilder {
                 });
             })
             let schema = JSON.parse(result);
-            ajv.addSchema(schema, 'kanro');
+            this.ajv.addSchema(schema, 'kanro');
         } catch (error) {
-            configLogger.warning("Config schema load failed, config validating will be disable.");
+            this.configLogger.warning("Config schema load failed, config validating will be disable.");
         }
     }
 
-    static async readConfig(config?: IAppConfig): Promise<IAppConfig> {
+    async readConfig(config?: IAppConfig): Promise<IAppConfig> {
         if (config != undefined) {
             return config;
         }
 
-        configLogger.info("Unspecified config, searching for configs...");
+        this.configLogger.info("Unspecified config, searching for configs...");
 
         if (await File.exists(`${process.cwd()}/kanro.json`)) {
-            return ConfigBuilder.readConfigFromFile(`${process.cwd()}/kanro.json`);
+            return this.readConfigFromFile(`${process.cwd()}/kanro.json`);
         }
         else if (await File.exists(`${projectDir}/config/kanro.json`)) {
-            configLogger.warning("'kanro.json' not found in project dir, default config will be using.");
-            return ConfigBuilder.readConfigFromFile(`${projectDir}/config/kanro.json`);
+            this.configLogger.warning("'kanro.json' not found in project dir, default config will be using.");
+            return this.readConfigFromFile(`${projectDir}/config/kanro.json`);
         }
         else {
             throw new Error("Kanro config 'kanro.json' not found.");
         }
     }
 
-    static async readConfigFromFile(file: string): Promise<IAppConfig> {
+    async readConfigFromFile(file: string): Promise<IAppConfig> {
         let result = <any>await File.readJson(file);
-        ConfigBuilder.validate(result);
+        this.validate(result);
         return result;
     }
 
-    static async readConfigFromJson(jsonString: string): Promise<IAppConfig> {
+    async readConfigFromJson(jsonString: string): Promise<IAppConfig> {
         let result = <any>JSON.parse(jsonString);
-        ConfigBuilder.validate(result);
+        this.validate(result);
         return result;
     }
 
-    private static validate(config: IAppConfig) {
-        if (ajv.getSchema('kanro') == undefined) {
+    validate(config: IAppConfig) {
+        if (this.ajv.getSchema('kanro') == undefined) {
             return true;
         }
 
-        if (!ajv.validate('kanro', config)) {
-            configLogger.error("Config can't validate with schema, check your 'kanro.json' file.");
-            throw new InvalidConfigException('kanro', ajv.errorsText(ajv.errors))
+        if (!this.ajv.validate('kanro', config)) {
+            this.configLogger.error("Config can't validate with schema, check your 'kanro.json' file.");
+            throw new InvalidConfigException('kanro', this.ajv.errorsText(this.ajv.errors))
         }
         return true;
     }

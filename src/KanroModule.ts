@@ -1,11 +1,11 @@
-import { Module, INodeContainer, Node } from "./Core";
+import { Module, INodeContainer, Node, IModuleInfo } from "./Core";
 import { FileRenderer, HttpExceptionRenderer, JsonRenderer } from "./Primitives";
 import { Router, MethodRouter } from "./Router";
+import { ServiceProxy } from "./Remote";
 import { KanroManager } from "./KanroManager";
 import { Application } from "./Application";
 
 export class KanroModule extends Module {
-
     async getNode(container: INodeContainer<Node>): Promise<Node> {
         switch (container.name) {
             case FileRenderer.name:
@@ -20,8 +20,15 @@ export class KanroModule extends Module {
                 return new MethodRouter(<any>container);
             case KanroManager.name:
                 return new KanroManager();
+            case ServiceProxy.name:
+                return new ServiceProxy(<any>container);
             default:
                 return undefined;
         }
+    }
+    
+    static moduleInfo : IModuleInfo = {
+        name: "kanro",
+        version: "*"
     }
 }

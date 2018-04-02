@@ -7,6 +7,7 @@ import { RouterResult } from "./RouterResult";
 import { RouterNode } from "./RouterNode";
 import { Logger, Colors, AnsiStyle, ILogger } from "../Logging";
 import { KanroManager } from "..";
+import { KanroModule } from "../KanroModule";
 
 export class Router extends RequestDiverter {
     async shunt(request: IRequest, nodes: INodeContainer<Node>[]): Promise<INodeContainer<Node>> {
@@ -40,7 +41,7 @@ export class Router extends RequestDiverter {
     }
     node: RouterNode;
     $preRouters: string;
-    dependencies: { [name: string]: Service | IModuleInfo; } = { KanroManager: { name: "kanro", version: "*" } };
+    dependencies = { kanroManager: { name: KanroManager.name, module: KanroModule.moduleInfo } };
     container: INodeContainer<RequestDiverter>;
     logger: ILogger;
 
@@ -50,14 +51,21 @@ export class Router extends RequestDiverter {
         this.container = container;
     }
 
-    async onDependenciesFilled() {
-        this.logger = (<KanroManager>this.dependencies.KanroManager).registerLogger("Router", AnsiStyle.create().foreground(Colors.red));
-
+    async onCreated(){
         this.container.next = [];
-        this.node = new RouterNode(undefined);
         for (let name in this.container) {
             if (name.startsWith("/")) {
                 this.container.next.push(this.container[name]);
+            }
+        }
+    }
+
+    async onLoaded() {
+        this.logger = this.getDependedService<KanroManager>("kanroManager").registerLogger("Router", AnsiStyle.create().foreground(Colors.red));
+
+        this.node = new RouterNode(undefined);
+        for (let name in this.container) {
+            if (name.startsWith("/")) {
                 this.node.addRouter(this.container[name], name);
                 if (name.endsWith("/**")) {
                     if (this.addRouterKeyToNextRouter(`${this.$preRouters}${name.slice(0, name.length - 3)}`, this.container[name])) {

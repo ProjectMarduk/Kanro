@@ -7,33 +7,65 @@ import { KanroModule } from "./KanroModule";
 import { NpmClient } from "./NpmClient";
 import { ExceptionUtils, ObjectUtils } from "./Utils";
 import { LoggerManager } from "./LoggerManager";
-import { Colors, AnsiStyle } from "./Logging";
+import { Colors, AnsiStyle, ILogger } from "./Logging";
 import { IAppConfig } from "./IAppConfig";
 import { KanroException } from "./Exceptions/index";
+import { KanroInternalModule } from './KanroInternalModule';
+import { Application } from '.';
+import { ConfigBuilder } from './ConfigBuilder';
+import { HttpServer } from './HttpServer';
 
-let moduleLogger = LoggerManager.current.registerLogger("Module", AnsiStyle.create().foreground(Colors.blue));
-
-export class ModuleManager {
+export class ModuleManager extends Service {
     modules: { [name: string]: { [version: string]: Module } } = {};
-    private static localModules: { [name: string]: { [version: string]: Module } } = {};
+    localModules: { [name: string]: { [version: string]: Module } } = {};
+    service: { [name: string]: INodeContainer<Service> } = {};
+
+    dependencies = {
+        loggerManager: {
+            name: LoggerManager.name,
+            module: KanroInternalModule.moduleInfo
+        },
+        npmClient: {
+            name: NpmClient.name,
+            module: KanroInternalModule.moduleInfo
+        }
+    }
+
+    private moduleLogger: ILogger;
+
+    constructor() {
+        super(undefined);
+    }
+
+    private get npmClient(): NpmClient {
+        return <NpmClient><any>this.dependencies.npmClient;
+    }
+
+    public get isProxable() {
+        return false;
+    }
+
+    async onLoaded(): Promise<void> {
+        this.moduleLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("Module", AnsiStyle.create().foreground(Colors.blue));
+    }
 
     registerLocalModule(name: string, version: string, module: Module) {
         ExceptionUtils.throwIfInvalidModule(module);
 
         this.registerModule(name, version, module);
-        ObjectUtils.setValueFormKeys(ModuleManager.localModules, module, name, version);
+        ObjectUtils.setValueFormKeys(this.localModules, module, name, version);
     }
 
     private registerModule(name: string, version: string, module: Module) {
         ExceptionUtils.throwIfInvalidModule(module);
 
         if (name == 'kanro' && !(module instanceof KanroModule)) {
-            moduleLogger.error(`Try to register a named 'kanro' module, but it is not 'kanro' module.`);
+            this.moduleLogger.error(`Try to register a named 'kanro' module, but it is not 'kanro' module.`);
             throw new Error();
         }
 
         if (ObjectUtils.getValueFormKeys(this.modules, name, version) != undefined) {
-            moduleLogger.warning(`Try to overwrite a registered module '${name}@${version}'.`);
+            this.moduleLogger.warning(`Try to overwrite a registered module '${name}@${version}'.`);
         }
 
         ObjectUtils.setValueFormKeys(this.modules, module, name, version);
@@ -51,7 +83,7 @@ export class ModuleManager {
         }
 
         if (version == '*' && name != 'kanro') {
-            moduleLogger.warning(`Try to install a unspecific version module '${name}', but not a kanro core module.`);
+            this.moduleLogger.warning(`Try to install a unspecific version module '${name}', but not a kanro core module.`);
         }
 
         let module;
@@ -69,7 +101,7 @@ export class ModuleManager {
                 this.registerModule(name, version, module['KanroModule']);
                 return module['KanroModule'];
             } catch (error) {
-                moduleLogger.warning(`Local module '${name}' is not a valid kanro module, try to reinstall it.`);
+                this.moduleLogger.warning(`Local module '${name}' is not a valid kanro module, try to reinstall it.`);
             }
         } catch (error) {
 
@@ -77,13 +109,13 @@ export class ModuleManager {
 
         // Try to install module by NPM.
         try {
-            module = await NpmClient.install(name, version);
+            module = await this.npmClient.install(name, version);
             this.registerModule(name, version, result['KanroModule']);
             result = module['KanroModule'];
-            moduleLogger.success(`Module '${name}@${version}' has been installed success!`);
+            this.moduleLogger.success(`Module '${name}@${version}' has been installed success!`);
             return result;
         } catch (error) {
-            moduleLogger.warning(`Install module '${name}@${version}' fail! Message: '${error.message}'.`);
+            this.moduleLogger.warning(`Install module '${name}@${version}' fail! Message: '${error.message}'.`);
             throw error;
         }
     }
@@ -113,12 +145,21 @@ export class ModuleManager {
 
     async getNode(config: INodeContainer<Node>): Promise<Node> {
         let module = this.getModule(config.module.name, config.module.version);
+        if (module == undefined && Cluster.isMaster) {
+            await this.installModule(config.module.name, config.module.version);
+            module = this.getModule(config.module.name, config.module.version);
+        }
+        if (module == undefined) {
+            let message = `Module '${config.module.name}@${config.module.version}' not found.`;
+            this.moduleLogger.error(message);
+            throw new Error(message);
+        }
         let result = await module.getNode(config);
 
         try {
             ExceptionUtils.throwIfInvalidNode(result);
         } catch (error) {
-            moduleLogger.error(`Node '${config.module.name}@${config.module.version}:${config.name}' is a invalid Kanro module.`);
+            this.moduleLogger.error(`Node '${config.module.name}@${config.module.version}:${config.name}' is a invalid Kanro module.`);
             throw error;
         }
 
@@ -126,8 +167,38 @@ export class ModuleManager {
         return result;
     }
 
-    private constructor() {
+    async registerService(config: INodeContainer<Service>): Promise<INodeContainer<Service>> {
+        let serviceKey = `${config.module.name}@${config.module.version}:${config.name}`;
+        if (config["id"] != undefined) {
+            serviceKey = `${serviceKey}@${config["id"]}`;
+        }
 
+        if (this.service[serviceKey] == undefined) {
+            config.instance = <Service>await this.getNode(config);
+            this.service[serviceKey] = config;
+        }
+        else {
+            if (config.dependencies != undefined) {
+                for (const key in config.dependencies) {
+                    this.service[serviceKey].dependencies[key] = config.dependencies[key];
+                }
+            }
+        }
+
+        return this.service[serviceKey];
+    }
+
+    async getService(config: INodeContainer<Service>): Promise<INodeContainer<Service>> {
+        let serviceKey = `${config.module.name}@${config.module.version}:${config.name}`;
+        if (config["id"] != undefined) {
+            serviceKey = `${serviceKey}@${config["id"]}`;
+        }
+
+        if (this.service[serviceKey] == undefined) {
+            throw new KanroException(`Service '${serviceKey} can't be resolved.`);
+        }
+
+        return this.service[serviceKey];
     }
 
     private static instance: ModuleManager;
@@ -155,6 +226,18 @@ export class ModuleManager {
             }
         }
 
+        if (node.exceptionHandlers != undefined) {
+            for (let exceptionHandler of node.exceptionHandlers) {
+                result += await this.installMissedModule(exceptionHandler);
+            }
+        }
+
+        if (node.fuses != undefined) {
+            for (let fuse of node.fuses) {
+                result += await this.installMissedModule(fuse);
+            }
+        }
+
         if (node.next instanceof Array) {
             for (let nextNode of node.next) {
                 result += await this.installMissedModule(nextNode);
@@ -165,36 +248,47 @@ export class ModuleManager {
         }
     }
 
-    private async fillNodeInstance(node: INodeContainer<Node>): Promise<boolean> {
-        let result = true;
-
+    private async nodeLoadEvent(node: INodeContainer<Node>) {
         if (node == undefined) {
-            return result;
+            return;
         }
 
-        if (node.instance == undefined) {
-            node.instance = await this.getNode(node);
-            result = result && (node.instance != undefined);
+        try {
+            await node.instance.onLoaded()
+        } catch (error) {
+            throw new KanroException("A exception has been threw by 'node.onLoaded' event.", error);
+        }
 
-            if (!result) {
-                return result;
+        if (node.exceptionHandlers != undefined) {
+            for (let exceptionHandler of node.exceptionHandlers) {
+                await this.nodeLoadEvent(exceptionHandler);
             }
-            else {
-                try {
-                    await node.instance.onLoaded();
-                } catch (error) {
-                    throw new KanroException("A exception has been threw by 'node.onLoaded' event.", error);
-                }
+        }
+
+        if (node.fuses != undefined) {
+            for (let fuse of node.fuses) {
+                await this.nodeLoadEvent(fuse);
             }
+        }
+
+        if (node.next instanceof Array) {
+            for (let nextNode of node.next) {
+                await this.nodeLoadEvent(nextNode);
+            }
+        }
+        else {
+            await this.nodeLoadEvent(node.next);
+        }
+    }
+
+    private async resolveRequiredServices(node: INodeContainer<Node>) {
+        if (node == undefined) {
+            return;
         }
 
         if (node.dependencies != undefined) {
             for (let key in node.dependencies) {
-                result = result && await this.fillNodeInstance(node.dependencies[key]);
-
-                if (node.dependencies[key].instance != undefined) {
-                    node.instance.dependencies[key] = node.dependencies[key].instance;
-                }
+                node.dependencies[key] = await this.registerService(node.dependencies[key]);
             }
         }
 
@@ -203,119 +297,244 @@ export class ModuleManager {
                 let serviceInfo = node.instance.dependencies[key];
 
                 if (!(serviceInfo instanceof Service)) {
-                    let serviceConfig: INodeContainer<Service> = {
-                        name: key,
-                        module: serviceInfo
-                    }
-
-                    let service = await this.getNode(serviceConfig);
-
-                    if (service != undefined) {
-                        node.instance.dependencies[key] = service;
-                    }
-                }
-            }
-
-            let dependenciesFilled = true;
-
-            for (let key in node.instance.dependencies) {
-                let serviceInfo = node.instance.dependencies[key];
-
-                if (!(serviceInfo instanceof Service)) {
-                    dependenciesFilled = false;
-                    break;
-                }
-            }
-
-            if (dependenciesFilled) {
-                try {
-                    await node.instance.onDependenciesFilled();
-                } catch (error) {
-                    throw new KanroException("A exception has been threw by 'node.onDependenciesFilled' event.", error);
+                    node.instance.dependencies[key] = await this.registerService(serviceInfo);
                 }
             }
         }
 
         if (node.exceptionHandlers != undefined) {
             for (let exceptionHandler of node.exceptionHandlers) {
-                result = result && await this.fillNodeInstance(exceptionHandler);
+                await this.resolveRequiredServices(exceptionHandler);
             }
         }
 
         if (node.fuses != undefined) {
             for (let fuse of node.fuses) {
-                result = result && await this.fillNodeInstance(fuse);
+                await this.resolveRequiredServices(fuse);
             }
         }
 
         if (node.next != undefined) {
             if (node.next instanceof Array) {
                 for (let nextNode of node.next) {
-                    result = result && await this.fillNodeInstance(nextNode);
+                    await this.resolveRequiredServices(nextNode);
                 }
             }
             else {
-                result = result && await this.fillNodeInstance(node.next);
+                await this.resolveRequiredServices(node.next);
+            }
+        }
+    }
+
+    private async resolveAllDependedService() {
+        let result = 0;
+
+        do {
+            for (let key in this.service) {
+                let serviceInfo = this.service[key];
+                result += await this.resolveDependedService(this.service[key]);
+            }
+        } while (result != 0);
+
+        for (const key in this.service) {
+            try {
+                await this.service[key].instance.onLoaded();
+            } catch (error) {
+                throw new KanroException("A exception has been threw by 'node.onLoaded' event.", error);
+            }
+        }
+    }
+
+    private async resolveDependedService(serviceInfo: INodeContainer<Service>): Promise<number> {
+        let result = 0;
+
+        if (serviceInfo.instance == undefined) {
+            serviceInfo.instance = <Service>await this.getNode(serviceInfo);
+            result++;
+        }
+
+        if (serviceInfo.dependencies != undefined) {
+            for (const key in serviceInfo.dependencies) {
+                let dependedServiceInfo = serviceInfo.dependencies[key];
+                if (dependedServiceInfo.instance == undefined) {
+                    dependedServiceInfo = await this.registerService(dependedServiceInfo);
+                }
+                serviceInfo.dependencies[key] = dependedServiceInfo;
+                serviceInfo.instance.dependencies[key] = dependedServiceInfo.instance;
+            }
+        }
+
+        for (const key in serviceInfo.instance.dependencies) {
+            let dependedServiceInfo = serviceInfo.instance.dependencies[key];
+
+            if (!(dependedServiceInfo instanceof Service)) {
+                if (dependedServiceInfo.instance == undefined) {
+                    dependedServiceInfo = await this.registerService(dependedServiceInfo);
+                }
+                serviceInfo.instance.dependencies[key] = dependedServiceInfo.instance;
             }
         }
 
         return result;
+    }
+
+    private async resolveNode(node: INodeContainer<Node>): Promise<number> {
+        let result = 0;
+
+        if (node == undefined) {
+            return result;
+        }
+
+        if (node.instance == undefined) {
+            node.instance = await this.getNode(node);
+            result++;
+
+            if (!result) {
+                return result;
+            }
+            else {
+                try {
+                    await node.instance.onCreated();
+                } catch (error) {
+                    throw new KanroException("A exception has been threw by 'node.onCreated' event.", error);
+                }
+            }
+        }
+
+        if (node.exceptionHandlers != undefined) {
+            for (let exceptionHandler of node.exceptionHandlers) {
+                result += await this.resolveNode(exceptionHandler);
+            }
+        }
+
+        if (node.fuses != undefined) {
+            for (let fuse of node.fuses) {
+                result += await this.resolveNode(fuse);
+            }
+        }
+
+        if (node.next != undefined) {
+            if (node.next instanceof Array) {
+                for (let nextNode of node.next) {
+                    result += await this.resolveNode(nextNode);
+                }
+            }
+            else {
+                result += await this.resolveNode(node.next);
+            }
+        }
+
+        return result;
+    }
+
+    private async resolveNodeDependencies(node: INodeContainer<Node>){
+        if (node == undefined) {
+            return;
+        }
+
+        if (ObjectUtils.getValueFormKeys(node, 'instance', 'dependencies') != undefined) {
+            for (let key in node.instance.dependencies) {
+                let serviceInfo = node.instance.dependencies[key];
+
+                if (!(serviceInfo instanceof Service)) {
+                    let serviceConfig: INodeContainer<Service> = serviceInfo;
+                    serviceConfig = await this.getService(serviceConfig);
+                    node.instance.dependencies[key] = serviceConfig.instance;
+                    //result += await this.fillNodeInstance(serviceConfig);
+                }
+            }
+        }
+
+        if (node.dependencies != undefined) {
+            for (let key in node.dependencies) {
+                let serviceInfo = await this.getService(node.dependencies[key]);
+                node.dependencies[key] = serviceInfo;
+                node.instance.dependencies[key] = serviceInfo.instance;
+            }
+        }
+
+        if (node.exceptionHandlers != undefined) {
+            for (let exceptionHandler of node.exceptionHandlers) {
+                await this.resolveNodeDependencies(exceptionHandler);
+            }
+        }
+
+        if (node.fuses != undefined) {
+            for (let fuse of node.fuses) {
+                await this.resolveNodeDependencies(fuse);
+            }
+        }
+
+        if (node.next != undefined) {
+            if (node.next instanceof Array) {
+                for (let nextNode of node.next) {
+                    await this.resolveNodeDependencies(nextNode);
+                }
+            }
+            else {
+                await this.resolveNodeDependencies(node.next);
+            }
+        }
+
     }
 
     async loadConfig(config: IAppConfig) {
         let missedModule = 0;
-        let allNodeFilled = true;
-
-
-        if (Cluster.isMaster) {
-            do {
-                missedModule = 0;
-                allNodeFilled = true;
-
-                missedModule += await this.installMissedModule(config.entryPoint);
-                missedModule += await this.installMissedModule(config.exitPoint);
-
-                allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.entryPoint);
-                allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.exitPoint);
-            } while ((missedModule == 0) && allNodeFilled);
-        }
-        else {
-            allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.entryPoint);
-            allNodeFilled = allNodeFilled && await this.fillNodeInstance(config.exitPoint);
-
-            if (!allNodeFilled) {
-                //TODO:
-                throw new Error();
-            }
-        }
-    }
-
-    static async initialize(config: IAppConfig): Promise<ModuleManager> {
-        if (ModuleManager.instance != undefined) {
-            return ModuleManager.instance;
-        }
-
-        let result = new ModuleManager();
+        let newNode = 0;
 
         if (Cluster.isMaster) {
-            await NpmClient.initialize(config);
+            await this.npmClient.initialize(config);
         }
-        ModuleManager.instance = result;
-        return result;
+
+        await this.resolveNode(config.entryPoint);
+        await this.resolveNode(config.exitPoint);
+
+        await this.resolveRequiredServices(config.entryPoint);
+        await this.resolveRequiredServices(config.exitPoint);
+
+        await this.resolveAllDependedService();
+
+        await this.resolveNodeDependencies(config.entryPoint);
+        await this.resolveNodeDependencies(config.exitPoint);
+
+        await this.nodeLoadEvent(config.entryPoint);
+        await this.nodeLoadEvent(config.exitPoint);
     }
 
-    async reloadConfig(config: IAppConfig) {
-        try {
-            let result = new ModuleManager();
-            for (let name in ModuleManager.localModules) {
-                for (let version in ModuleManager.localModules[name]) {
-                    result.registerModule(name, version, ModuleManager.localModules[name][version]);
-                }
-            }
-            await result.loadConfig(config);
-            ModuleManager.instance = result;
-        } catch (error) {
-            moduleLogger.error('Reload config fail, operation will be canceled.')
+    async initialize(internalModule: KanroInternalModule): Promise<void> {
+        if (internalModule.moduleManager != this) {
+            throw new KanroException("Unknown error for initialize internal kanro module");
         }
+
+        this.registerLocalModule(KanroInternalModule.moduleInfo.name,
+            KanroInternalModule.moduleInfo.version, internalModule);
+        this.registerLocalModule(KanroModule.moduleInfo.name,
+            KanroModule.moduleInfo.version, new KanroModule());
+
+        await this.registerService({
+            name: LoggerManager.name,
+            module: KanroInternalModule.moduleInfo
+        });
+        await this.registerService({
+            name: Application.name,
+            module: KanroInternalModule.moduleInfo
+        });
+        await this.registerService({
+            name: NpmClient.name,
+            module: KanroInternalModule.moduleInfo
+        });
+        await this.registerService({
+            name: ConfigBuilder.name,
+            module: KanroInternalModule.moduleInfo
+        });
+        await this.registerService({
+            name: HttpServer.name,
+            module: KanroInternalModule.moduleInfo
+        });
+        await this.registerService({
+            name: ModuleManager.name,
+            module: KanroInternalModule.moduleInfo
+        });
+        await this.resolveAllDependedService();
     }
 }

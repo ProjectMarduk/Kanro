@@ -12,6 +12,10 @@ export class ObjectUtils {
     }
 
     static getValueFormKeys(object, ...keys: (string | number)[]) {
+        if(object == undefined){
+            return undefined;
+        }
+
         for (let key of keys) {
             if (object[key] == undefined) {
                 return undefined;

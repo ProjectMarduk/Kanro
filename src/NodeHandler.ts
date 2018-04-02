@@ -1,7 +1,7 @@
-import { RequestContext } from "./RequestContext";
 import { INodeContainer, Node, RequestHandler, RequestDiverter, RequestReplicator, Responder, ResponseHandler, ExceptionHandler, Fuse } from "./Core/index";
 import { UnexpectedNodeException } from "./Exceptions/UnexpectedNodeException";
 import { NonstandardNodeException } from "./Exceptions/index";
+import { RequestContext } from "./Http";
 
 export async function NodeHandler(context: RequestContext, container: INodeContainer<Node>): Promise<RequestContext> {
     if (container == undefined) {

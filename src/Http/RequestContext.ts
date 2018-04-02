@@ -1,5 +1,7 @@
-import { Request, RequestMirror, Response } from "./Http/index";
-import { INodeContainer, Node } from "./Core/index";
+import { Request } from "./Request";
+import { RequestMirror } from "./RequestMirror";
+import { Response } from "./Response";
+import { INodeContainer, Node } from "../Core";
 
 export class RequestContext {
     public request: Request | RequestMirror;

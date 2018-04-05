@@ -9,18 +9,18 @@ import { Logger, Colors, AnsiStyle, ILogger } from "../Logging";
 import { KanroManager } from "..";
 import { KanroModule } from "../KanroModule";
 
-export class Router extends RequestDiverter {
+export class UrlRouter extends RequestDiverter {
     async shunt(request: IRequest, nodes: INodeContainer<Node>[]): Promise<INodeContainer<Node>> {
-        let result = this.node.matchRequest(<any>request, (<Request>request).routerIndex);
+        let result: RouterResult[] = this.node.matchRequest(<any>request, (<Request>request).routerIndex);
 
-        let deep = -1;
+        let deep: number = -1;
         let selectedNode: RouterResult = undefined;
         for (let node of result) {
             if (node.deep > deep) {
                 deep = node.deep;
                 selectedNode = node;
-            } else if (node.deep == deep) {
-                for (var index = 0; index < selectedNode.routerStack.length; index++) {
+            } else if (node.deep === deep) {
+                for (let index: number = 0; index < selectedNode.routerStack.length; index++) {
                     if (selectedNode.routerStack[index].type < node.routerStack[index].type) {
                         selectedNode = node;
                         break;
@@ -31,12 +31,12 @@ export class Router extends RequestDiverter {
             }
         }
 
-        if (selectedNode == undefined || selectedNode.node == undefined) {
+        if (selectedNode == null || selectedNode.node == null) {
             throw new NotFoundException();
         }
 
         (<Request>request).routerIndex = deep;
-        request["param"] = Object.assign(request["param"] == undefined ? {} : request["param"], selectedNode.param);
+        request.param = Object.assign(request.param == null ? {} : request.param, selectedNode.param);
         return selectedNode.node;
     }
     node: RouterNode;
@@ -47,11 +47,11 @@ export class Router extends RequestDiverter {
 
     constructor(container: INodeContainer<RequestDiverter>) {
         super(container);
-        this.$preRouters = container["$preRouters"] != undefined ? container["$preRouters"] : "";
+        // this.$preRouters = container["$preRouters"] != null ? container["$preRouters"] : "";
         this.container = container;
     }
 
-    async onCreated(){
+    async onCreated(): Promise<void> {
         this.container.next = [];
         for (let name in this.container) {
             if (name.startsWith("/")) {
@@ -60,8 +60,10 @@ export class Router extends RequestDiverter {
         }
     }
 
-    async onLoaded() {
-        this.logger = this.getDependedService<KanroManager>("kanroManager").registerLogger("Router", AnsiStyle.create().foreground(Colors.red));
+    async onLoaded(): Promise<void> {
+        this.logger =
+            await (await this.getDependedService<KanroManager>("kanroManager"))
+                .registerLogger("Router", AnsiStyle.create().foreground(Colors.red));
 
         this.node = new RouterNode(undefined);
         for (let name in this.container) {
@@ -80,10 +82,10 @@ export class Router extends RequestDiverter {
         }
     }
 
-    addRouterKeyToNextRouter(key: string, node: INodeContainer<Node>[] | INodeContainer<Node>) {
-        let result = false;
+    addRouterKeyToNextRouter(key: string, node: INodeContainer<Node>[] | INodeContainer<Node>): boolean {
+        let result: boolean = false;
 
-        if (node == undefined) {
+        if (node == null) {
             return;
         }
 
@@ -97,9 +99,9 @@ export class Router extends RequestDiverter {
             return result;
         }
 
-        if (node.name == this.name) {
-            let router = <INodeContainer<Router>>node;
-            if (router.instance.$preRouters == undefined) {
+        if (node.name === this.name) {
+            let router: INodeContainer<UrlRouter> = <INodeContainer<UrlRouter>>node;
+            if (router.instance.$preRouters == null) {
                 router.instance.$preRouters = "";
             }
             router.instance.$preRouters += key;
@@ -113,6 +115,6 @@ export class Router extends RequestDiverter {
             result = true;
         }
 
-        return result || this.addRouterKeyToNextRouter(key, node["next"]);
+        return result || this.addRouterKeyToNextRouter(key, node.next);
     }
 }

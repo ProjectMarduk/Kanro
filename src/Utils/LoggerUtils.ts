@@ -2,7 +2,7 @@ import { LogLevel, Style, AnsiStyle, Colors } from "../Logging";
 import { TimeUtils } from "./TimeUtils";
 
 export class LoggerUtils {
-    static getLogLevelFlag(level: LogLevel) {
+    static getLogLevelFlag(level: LogLevel): string {
         switch (level) {
             case LogLevel.info:
                 return Style`${AnsiStyle.create().foreground(Colors.blue)}${"[·]"}`;
@@ -15,26 +15,26 @@ export class LoggerUtils {
         }
     }
 
-    static isErrorOutput(level: LogLevel) {
+    static isErrorOutput(level: LogLevel): boolean {
         return level > 1;
     }
 
     static buildLogString(namespace: string, level: LogLevel, message: string, interval: number, style: AnsiStyle): string {
-        let lines = message.split('\n');
-        let result = [];
+        let lines: string[] = message.split("\n");
+        let result: string[] = [];
 
-        for (var index = 0; index < lines.length; index++) {
-            var line = lines[index];
+        for (let index: number = 0; index < lines.length; index++) {
+            let line: string = lines[index];
 
-            if (index == 0 && interval != undefined) {
-                let intervalString = Style`${style}${'+' + TimeUtils.getIntervalString(interval)}`;
+            if (index === 0 && interval != null) {
+                let intervalString: String = Style`${style}${"+" + TimeUtils.getIntervalString(interval)}`;
+                // tslint:disable-next-line:max-line-length
                 result.push(`[${TimeUtils.getTimeString(Date.now())}]  ${namespace} - ${LoggerUtils.getLogLevelFlag(level)} ${line} ${intervalString}`);
-            }
-            else {
+            } else {
                 result.push(`[${TimeUtils.getTimeString(Date.now())}]  ${namespace} - ${LoggerUtils.getLogLevelFlag(level)} ${line}`);
             }
         }
 
-        return result.join('\n');
+        return result.join("\n");
     }
 }

@@ -1,23 +1,23 @@
+import { INodeContainer, Node } from "../Core";
 import { Request } from "./Request";
 import { RequestMirror } from "./RequestMirror";
 import { Response } from "./Response";
-import { INodeContainer, Node } from "../Core";
 
 export class RequestContext {
-    public request: Request | RequestMirror;
-    public response: Response;
-    public error?: Error;
-    public traceStack: INodeContainer<Node>[];
-    public time: number;
+    request: Request | RequestMirror;
+    response: Response;
+    error?: Error;
+    traceStack: INodeContainer<Node>[];
+    time: number;
 
-    public constructor(request: Request | RequestMirror) {
+    constructor(request: Request | RequestMirror) {
         this.request = request;
         this.traceStack = [];
         this.time = Date.now();
     }
 
     fork(request: Request | RequestMirror, response: Response): RequestContext {
-        let result = new RequestContext(request);
+        let result: RequestContext = new RequestContext(request);
         result.response = response;
         result.error = this.error;
         result.traceStack = this.traceStack.slice(0);

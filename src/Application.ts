@@ -1,25 +1,41 @@
-import * as Http from "http";
 import * as Cluster from "cluster";
+import * as Http from "http";
 import * as OS from "os";
-
-import { RequestMirror, Request, Response, RequestContext } from "./Http";
-import { NotFoundException, NonstandardNodeException, NodeNotSupportedException } from "./Exceptions";
-import { UnexpectedNodeException } from "./Exceptions/UnexpectedNodeException";
-import { LoggerManager } from "./LoggerManager";
-import { ModuleManager } from "./ModuleManager";
-import { IModuleInfo, INodeContainer, Node, RequestHandler, RequestDiverter, RequestReplicator, Responder, ResponseHandler, ExceptionHandler, Fuse, Module, Service } from "./Core";
-import { IAppConfig } from "./IAppConfig";
-import { Colors, Style, AnsiStyle, LogLevel, Logger, ILogger } from "./Logging";
+import { AnsiStyle, Colors, ILogger, Logger, LogLevel, Style } from "./Logging";
 import { ConfigBuilder } from "./ConfigBuilder";
-import { KanroModule } from "./KanroModule";
-import { Master } from "./Cluster/Master";
-import { Worker } from "./Cluster/Worker";
-import { KanroInternalModule } from "./KanroInternalModule";
-import { version } from "punycode";
-import { ObjectUtils } from "./Utils";
+import {
+    ExceptionHandler,
+    Fuse,
+    IModuleInfo,
+    INodeContainer,
+    Module,
+    Node,
+    RequestDiverter,
+    RequestHandler,
+    RequestReplicator,
+    Responder,
+    ResponseHandler,
+    Service
+} from "./Core";
+import { File, Path } from "./IO";
 import { HttpServer } from "./HttpServer";
+import { IAppConfig } from "./IAppConfig";
+import { KanroInternalModule } from "./KanroInternalModule";
+import { KanroModule } from "./KanroModule";
+import { LoggerManager } from "./LoggerManager";
+import { Master } from "./Cluster/Master";
+import { ModuleManager } from "./ModuleManager";
 import { NodeHandler } from "./NodeHandler";
+import { NodeNotSupportedException, NonstandardNodeException, NotFoundException } from "./Exceptions";
 import { NpmClient } from "./NpmClient";
+import { ObjectUtils } from "./Utils";
+import { Request, RequestContext, RequestMirror, Response } from "./Http";
+import { UnexpectedNodeException } from "./Exceptions/UnexpectedNodeException";
+import { version } from "punycode";
+import { Worker } from "./Cluster/Worker";
+
+
+let projectDir: string = Path.resolve(__dirname, "..");
 
 export enum HttpMethod {
     get = Colors.green,
@@ -51,7 +67,7 @@ export class Application extends Service {
             name: NpmClient.name,
             module: KanroInternalModule.moduleInfo
         }
-    }
+    };
 
     constructor(config?: IAppConfig, localModules: { module: Module, name: string, version: string }[] = []) {
         super(undefined);
@@ -63,60 +79,53 @@ export class Application extends Service {
     private configMeta: IAppConfig;
     private runtimeContext: IAppConfig;
     private localModules: { module: Module, name: string, version: string }[];
-    private get configBuilder(): ConfigBuilder {
-        return this.getDependedService<ConfigBuilder>("configBuilder");
-    }
-    private get moduleManager(): ModuleManager {
-        return this.getDependedService<ModuleManager>("moduleManager");
-    }
-    private get npmClient(): NpmClient {
-        return this.getDependedService<NpmClient>("npmClient");
-    }
-    private get httpServer(): HttpServer {
-        return this.getDependedService<HttpServer>("httpServer");
-    }
+    private configBuilder: ConfigBuilder;
+    private moduleManager: ModuleManager;
+    private npmClient: NpmClient;
+    private httpServer: HttpServer;
 
     async onLoaded(): Promise<void> {
-        this.appLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("App", AnsiStyle.create().foreground(Colors.magenta));
-        this.clusterLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("Cluster", AnsiStyle.create().foreground(Colors.cyan));
+        this.configBuilder = await this.getDependedService<ConfigBuilder>("configBuilder");
+        this.moduleManager = await this.getDependedService<ModuleManager>("moduleManager");
+        this.npmClient = await this.getDependedService<NpmClient>("npmClient");
+        this.httpServer = await this.getDependedService<HttpServer>("httpServer");
+
+        this.appLogger = await (await this.getDependedService<LoggerManager>("loggerManager"))
+            .registerLogger("App", AnsiStyle.create().foreground(Colors.magenta));
+        this.clusterLogger = await (await this.getDependedService<LoggerManager>("loggerManager"))
+            .registerLogger("Cluster", AnsiStyle.create().foreground(Colors.cyan));
     }
     private appLogger: ILogger;
     private clusterLogger: ILogger;
 
-    public die(error: Error, module: String) {
-        let stackInfo = error.stack;
+    die(error: Error, module: String): void {
+        let stackInfo: string = error.stack;
 
-        while (error['innerException'] != undefined) {
-            error = error['innerException'];
+        while (error.hasOwnProperty("innerException")) {
+            // tslint:disable-next-line:no-string-literal
+            error = error["innerException"];
             stackInfo += `\n With inner exception '${error.name}'\n    ${error.stack}`;
         }
 
-        this.appLogger.error(`A catastrophic failure occurred in 'Kanro:${module}'\n    ${stackInfo}`)
+        this.appLogger.error(`A catastrophic failure occurred in 'Kanro:${module}'\n    ${stackInfo}`);
         process.exit(-1);
     }
 
-    public get isProxable() {
-        return false;
+    readonly isProxable: boolean = false;
+
+    private async helloKanro(): Promise<void> {
+        let bannerFile: string = `${projectDir}/config/banner`;
+        if (await File.exists(`${process.cwd()}/banner`)) {
+            bannerFile = `${process.cwd()}/banner`;
+        }
+
+        let banner: string[] = (await File.readFile(bannerFile)).toString().replace("\r\n", "\n").replace("\r", "\n").split("\n");
+        for (const line of banner) {
+            console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${line}`);
+        }
     }
 
-    private helloKanro() {
-        console.log("");
-        console.log("");
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888     ,88'          .8.          b.             8 8 888888888o.      ,o888888o.     "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888    ,88'          .888.         888o.          8 8 8888    `88.  . 8888     `88.   "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888   ,88'          :88888.        Y88888o.       8 8 8888     `88 ,8 8888       `8b  "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888  ,88'          . `88888.       .`Y888888o.    8 8 8888     ,88 88 8888        `8b "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888 ,88'          .8. `88888.      8o. `Y888888o. 8 8 8888.   ,88' 88 8888         88 "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888 88'          .8`8. `88888.     8`Y8o. `Y88888o8 8 888888888P'  88 8888         88 "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 888888<          .8' `8. `88888.    8   `Y8o. `Y8888 8 8888`8b      88 8888        ,8P "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888 `Y8.       .8'   `8. `88888.   8      `Y8o. `Y8 8 8888 `8b.    `8 8888       ,8P  "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888   `Y8.    .888888888. `88888.  8         `Y8o.` 8 8888   `8b.   ` 8888     ,88'   "}`);
-        console.log(Style`${AnsiStyle.create().foreground(Colors.blue)}${"    8 8888     `Y8. .8'       `8. `88888. 8            `Yo 8 8888     `88.    `8888888P'     "}`);
-        console.log("");
-        console.log("");
-    }
-
-    async run() {
+    async run(): Promise<void> {
         try {
             await this.boot();
         } catch (error) {
@@ -135,7 +144,7 @@ export class Application extends Service {
                 this.appLogger.info("Rebuild application context...");
             }
 
-            let newApp = new Application(config, this.localModules);
+            let newApp: Application = new Application(config, this.localModules);
             await newApp.boot(this);
             return newApp;
         } catch (error) {
@@ -143,32 +152,32 @@ export class Application extends Service {
         }
     }
 
-    public get config(): Readonly<IAppConfig> {
+    get config(): Readonly<IAppConfig> {
         return this.configMeta;
     }
 
-    private async initializeInternalModule() {
-        let internalModule = new KanroInternalModule(this);
+    private async initializeInternalModule(): Promise<void> {
+        let internalModule: KanroInternalModule = new KanroInternalModule(this);
         await internalModule.moduleManager.initialize(internalModule);
         await internalModule.configBuilder.initialize();
     }
 
-    private registerLocalModules(localModules: { module: Module, name: string, version: string }[] = []) {
+    private registerLocalModules(localModules: { module: Module, name: string, version: string }[] = []): void {
         for (const localModule of localModules) {
-            this.moduleManager.registerLocalModule(localModule.name, localModule.version, localModule.module)
+            this.moduleManager.registerLocalModule(localModule.name, localModule.version, localModule.module);
         }
     }
 
-    private async entryPointe(context: RequestContext) {
+    private async entryPoint(context: RequestContext): Promise<RequestContext> {
         context = await NodeHandler(context, this.runtimeContext.entryPoint);
         context = await NodeHandler(context, this.runtimeContext.exitPoint);
         return context;
     }
 
-    private async boot(application?: Application) {
+    private async boot(application?: Application): Promise<void> {
         if (Cluster.isMaster) {
-            if(application == undefined){
-                this.helloKanro();
+            if (application == null) {
+                await this.helloKanro();
             }
             this.isBooted = true;
             await this.initializeInternalModule();
@@ -178,46 +187,39 @@ export class Application extends Service {
             this.configMeta = await this.configBuilder.readConfig(this.configMeta);
             this.runtimeContext = ObjectUtils.copy(this.config);
 
+            this.appLogger.info("Register local modules...");
+            this.registerLocalModules(this.localModules);
+
+            this.appLogger.info("Install modules and fill nodes...");
+            await this.moduleManager.loadConfig(this.runtimeContext);
+
             if (this.config.cluster) {
-                this.appLogger.info("Register local modules...");
-                this.registerLocalModules(this.localModules);
-
-                this.appLogger.info("Install module and fill nodes...");
-                await this.moduleManager.loadConfig(this.runtimeContext);
-
+                this.appLogger.warning("Cluster mode is experimental in current kanro version, some feature may be instability.");
                 await (new Master(this, this.clusterLogger, this.appLogger)).run();
                 this.appLogger.info("Kanro is ready.");
-            }
-            else {
-                this.appLogger.info("Register local modules...");
-                this.registerLocalModules(this.localModules);
-
-                this.appLogger.info("Install module and fill nodes...");
-                await this.moduleManager.loadConfig(this.runtimeContext);
-
-                let oldHttpServer = ObjectUtils.getValueFormKeys(application, "httpServer");
+            } else {
+                let oldHttpServer: HttpServer = ObjectUtils.getValueFormKeys(application, "httpServer");
                 await this.httpServer.initialize(this.config.port, async (context) => {
-                    return await this.entryPointe(context)
+                    return await this.entryPoint(context);
                 }, oldHttpServer);
 
                 this.appLogger.info("Kanro is ready.");
             }
-        }
-        else {
+        } else {
             await this.initializeInternalModule();
             this.appLogger.info("Booting worker...");
             await (new Worker(this, this.clusterLogger, this.appLogger)).run();
         }
     }
 
-    async workerBoot(config: IAppConfig) {
+    async workerBoot(config: IAppConfig): Promise<void> {
         this.isBooted = true;
         this.configMeta = await this.configBuilder.readConfig(config);
         this.runtimeContext = ObjectUtils.copy(this.config);
         this.registerLocalModules(this.localModules);
         await this.moduleManager.loadConfig(this.runtimeContext);
         await this.httpServer.initialize(this.config.port, async (context) => {
-            return await this.entryPointe(context)
+            return await this.entryPoint(context);
         });
         this.appLogger.info(`Worker ${Cluster.worker.id} is ready.`);
     }

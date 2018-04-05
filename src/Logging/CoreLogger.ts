@@ -1,8 +1,9 @@
-import * as FileStream from 'fs';
-import { Path, File } from "../IO";
+import * as FileStream from "fs";
+import { File, Path } from "../IO";
 import { StringUtils } from "../Utils/index";
+import { ILogConfig } from "./ILogConfig";
 
-let projectDir = Path.resolve(__dirname, '../..');
+let projectDir: string = Path.resolve(__dirname, "../..");
 
 export class CoreLogger {
     private logFile: NodeJS.WritableStream;
@@ -10,56 +11,55 @@ export class CoreLogger {
     static time: number = -1;
 
     private constructor(logFile: string, errorFile: string) {
-        if (logFile != undefined) {
+        if (logFile != null) {
             File.createDirSync(Path.dirname(logFile));
-            this.logFile = FileStream.createWriteStream(logFile, {'flags': 'a'});
+            this.logFile = FileStream.createWriteStream(logFile, { "flags": "a" });
         }
-        if (errorFile != undefined) {
+        if (errorFile != null) {
             File.createDirSync(Path.dirname(errorFile));
-            this.errorFile = FileStream.createWriteStream(errorFile, {'flags': 'a'});
+            this.errorFile = FileStream.createWriteStream(errorFile, { "flags": "a" });
         }
     }
 
     private static instance: CoreLogger;
 
-    public static get current() {
-        if (CoreLogger.instance == undefined) {
+    static get current(): CoreLogger {
+        if (CoreLogger.instance == null) {
 
-            let config = {};
+            let config: ILogConfig;
             if (FileStream.existsSync(`${process.cwd()}/logger.json`)) {
                 config = require(`${process.cwd()}/logger.json`);
-            }
-            else if (FileStream.existsSync(`${projectDir}/config/logger.json`)) {
+            } else if (FileStream.existsSync(`${projectDir}/config/logger.json`)) {
                 config = require(`${projectDir}/config/logger.json`);
             }
 
-            CoreLogger.instance = new CoreLogger(config['logFile'], config['errorFile']);
+            CoreLogger.instance = new CoreLogger(config.logFile, config.errorFile);
         }
         return CoreLogger.instance;
     }
 
-    public log(message: string) {
+    log(message: string): void {
         console.log(message);
 
-        if(this.logFile != undefined){
-            this.logFile.write(StringUtils.removeStyling(message) + '\n')
+        if (this.logFile != null) {
+            this.logFile.write(StringUtils.removeStyling(message) + "\n");
         }
 
         CoreLogger.time = Date.now();
     }
 
-    public error(message: string) {
+    error(message: string): void {
         console.error(message);
-        
-        let noStyling = StringUtils.removeStyling(message) + '\n';
 
-        if(this.logFile != undefined){
-            this.logFile.write(noStyling)
+        let noStyling: string = StringUtils.removeStyling(message) + "\n";
+
+        if (this.logFile != null) {
+            this.logFile.write(noStyling);
         }
-        if(this.errorFile != undefined){
-            this.errorFile.write(noStyling)
+        if (this.errorFile != null) {
+            this.errorFile.write(noStyling);
         }
-        
+
         CoreLogger.time = Date.now();
     }
 }

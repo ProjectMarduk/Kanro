@@ -1,15 +1,15 @@
-import * as Ajv from 'Ajv';
-import * as Request from 'request';
-import { Path, File } from './IO';
-import { InvalidConfigException } from './Exceptions';
-import { IAppConfig } from './IAppConfig';
+import * as Ajv from "Ajv";
+import * as Request from "request";
+import { AnsiStyle, Colors, ILogger } from "./Logging";
+import { File, Path } from "./IO";
+import { IAppConfig } from "./IAppConfig";
+import { IModuleInfo, Service } from "./Core";
+import { InvalidConfigException } from "./Exceptions";
+import { KanroInternalModule } from "./KanroInternalModule";
 import { LoggerManager } from "./LoggerManager";
-import { Colors, AnsiStyle, ILogger } from "./Logging";
-import { Router } from "./Router";
-import { Service, IModuleInfo } from './Core';
-import { KanroInternalModule } from './KanroInternalModule';
+import { UrlRouter } from "./Router";
 
-let projectDir = Path.resolve(__dirname, '..');
+let projectDir: string = Path.resolve(__dirname, "..");
 
 export class ConfigBuilder extends Service {
     dependencies = {
@@ -17,7 +17,7 @@ export class ConfigBuilder extends Service {
             name: LoggerManager.name,
             module: KanroInternalModule.moduleInfo
         }
-    }
+    };
 
     private ajv = Ajv();
 
@@ -26,30 +26,31 @@ export class ConfigBuilder extends Service {
     }
 
     async onLoaded(): Promise<void> {
-        this.configLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("Config", AnsiStyle.create().foreground(Colors.green));
+        this.configLogger = await (await this.getDependedService<LoggerManager>("loggerManager"))
+            .registerLogger("Config", AnsiStyle.create().foreground(Colors.green));
     }
     private configLogger: ILogger;
 
-    async initialize() {
+    async initialize(): Promise<void> {
         try {
-            let result = await new Promise<any>((res, rej) => {
-                Request.get("http://higan.me/schema/1.1/kanro.json", (error, response, body) => {
+            let result: any = await new Promise<any>((res, rej) => {
+                Request.get("https://higan.me/schema/1.1/kanro.json", (error, response, body) => {
                     if (error) {
                         rej(error);
                         return;
                     }
                     res(body);
                 });
-            })
-            let schema = JSON.parse(result);
-            this.ajv.addSchema(schema, 'kanro');
+            });
+            let schema: any = JSON.parse(result);
+            this.ajv.addSchema(schema, "kanro");
         } catch (error) {
             this.configLogger.warning("Config schema load failed, config validating will be disable.");
         }
     }
 
     async readConfig(config?: IAppConfig): Promise<IAppConfig> {
-        if (config != undefined) {
+        if (config != null) {
             return config;
         }
 
@@ -57,36 +58,34 @@ export class ConfigBuilder extends Service {
 
         if (await File.exists(`${process.cwd()}/kanro.json`)) {
             return this.readConfigFromFile(`${process.cwd()}/kanro.json`);
-        }
-        else if (await File.exists(`${projectDir}/config/kanro.json`)) {
-            this.configLogger.warning("'kanro.json' not found in project dir, default config will be using.");
+        } else if (await File.exists(`${projectDir}/config/kanro.json`)) {
+            this.configLogger.warning("'kanro.json' not found in work directory, default config will be used.");
             return this.readConfigFromFile(`${projectDir}/config/kanro.json`);
-        }
-        else {
+        } else {
             throw new Error("Kanro config 'kanro.json' not found.");
         }
     }
 
     async readConfigFromFile(file: string): Promise<IAppConfig> {
-        let result = <any>await File.readJson(file);
+        let result: any = <any>await File.readJson(file);
         this.validate(result);
         return result;
     }
 
     async readConfigFromJson(jsonString: string): Promise<IAppConfig> {
-        let result = <any>JSON.parse(jsonString);
+        let result: any = <any>JSON.parse(jsonString);
         this.validate(result);
         return result;
     }
 
-    validate(config: IAppConfig) {
-        if (this.ajv.getSchema('kanro') == undefined) {
+    validate(config: IAppConfig): boolean {
+        if (this.ajv.getSchema("kanro") == null) {
             return true;
         }
 
-        if (!this.ajv.validate('kanro', config)) {
+        if (!this.ajv.validate("kanro", config)) {
             this.configLogger.error("Config can't validate with schema, check your 'kanro.json' file.");
-            throw new InvalidConfigException('kanro', this.ajv.errorsText(this.ajv.errors))
+            throw new InvalidConfigException("kanro", this.ajv.errorsText(this.ajv.errors));
         }
         return true;
     }

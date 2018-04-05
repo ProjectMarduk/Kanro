@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class ProxyAuthenticationRequiredException extends HttpException {
-    public name: string = "Error.Kanro.Http.ProxyAuthenticationRequired";
+    name: string = "Error.Kanro.Http.ProxyAuthenticationRequired";
 
-    constructor(message: string = "Proxy Authentication Required", innerException: Error = undefined) {
+    constructor(message: string = "Proxy Authentication Required", innerException?: Error) {
         super(407, message, innerException);
     }
 }

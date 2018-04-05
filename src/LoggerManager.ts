@@ -1,20 +1,17 @@
 import * as Cluster from "cluster";
-import { Logger, Colors, AnsiStyle, ILogger, WorkerLogger } from "./Logging";
+import { AnsiStyle, Colors, ILogger, Logger, WorkerLogger } from "./Logging";
 import { Service } from "./Core";
 
-export class LoggerManager extends Service{
+export class LoggerManager extends Service {
     private loggers: { [namespace: string]: ILogger } = {};
 
-    public get isProxable(){
-        return false;
-    }
+    readonly isProxable: boolean = false;
 
     registerLogger(namespace: string, style?: AnsiStyle): ILogger {
-        if (this.loggers[namespace] == undefined) {
+        if (this.loggers[namespace] == null) {
             if (Cluster.isMaster) {
                 this.loggers[namespace] = new Logger(`Kanro:${namespace}`, style);
-            }
-            else {
+            } else {
                 this.loggers[namespace] = new WorkerLogger(`Worker:${Cluster.worker.id}:${namespace}`);
             }
         }

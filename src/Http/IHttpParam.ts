@@ -1,6 +1,6 @@
 /**
  * HTTP param structure.
- * 
+ *
  * @export
  * @interface IHttpParam
  */

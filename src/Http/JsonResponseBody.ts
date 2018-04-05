@@ -1,22 +1,21 @@
+import * as Http from "http";
 import { IResponseBody } from "./IResponseBody";
 
-import * as Http from "http";
-
 /**
-* Json response body, it will return a object as json to client.
-* 
-* @export
-* @class JsonResponseBody
-* @implements {IResponseBody}
-*/
+ * Json response body, it will return a object as json to client.
+ *
+ * @export
+ * @class JsonResponseBody
+ * @implements {IResponseBody}
+ */
 export class JsonResponseBody implements IResponseBody {
     data: any;
     /**
      * Write object as json to response.
-     * 
-     * @param {Web.ServerResponse} response 
-     * @returns {Promise<any>} 
-     * 
+     *
+     * @param {Web.ServerResponse} response
+     * @returns {Promise<any>}
+     *
      * @memberOf JsonResponseBody
      */
     async write(response: Http.ServerResponse): Promise<any> {
@@ -24,14 +23,14 @@ export class JsonResponseBody implements IResponseBody {
         await new Promise((res, rej) => {
             response.write(JSON.stringify(this.data), () => {
                 res();
-            })
-        })
+            });
+        });
     }
 
     /**
      * Creates an instance of JsonResponseBody.
      * @param {*} data Body object.
-     * 
+     *
      * @memberOf JsonResponseBody
      */
     constructor(data: any) {

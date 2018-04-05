@@ -1,4 +1,4 @@
-export enum ServiceCallType{
+export enum ServiceCallType {
     has,
     get,
     set,

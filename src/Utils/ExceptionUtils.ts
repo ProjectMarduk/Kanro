@@ -2,19 +2,19 @@ import { InvalidModuleException, InvalidNodeException, ArgumentNullException } f
 import { Module, Node } from "../Core";
 
 export class ExceptionUtils {
-    public static throwIfInvalidModule(module: Module) {
+    static throwIfInvalidModule(module: Module): void {
         if (!(module instanceof Module)) {
-            throw new InvalidNodeException(module);
+            throw new InvalidModuleException(module);
         }
     }
 
-    public static throwIfInvalidNode(node: Node) {
+    static throwIfInvalidNode(node: Node): void {
         if (!(node instanceof Node)) {
             throw new InvalidNodeException(node);
         }
     }
 
-    public static throwIfNullOrUndefined(value: any, param: string) {
+    static throwIfNullOrUndefined(value: any, param: string): void {
         if (value === null || value === undefined) {
             throw new ArgumentNullException(param);
         }

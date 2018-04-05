@@ -1,13 +1,14 @@
 import * as Cluster from "cluster";
-import { NodeHandler } from "../NodeHandler";
 import { Application } from "../Application";
 import { HttpServer } from "../HttpServer";
 import { IAppConfig } from "../IAppConfig";
-import { ModuleManager } from "../ModuleManager";
-import { ObjectUtils } from "../Utils/index";
+import { ILogger } from "../Logging";
 import { KanroModule } from "../KanroModule";
 import { Module } from "../Core/index";
-import { ILogger } from "../Logging";
+import { ModuleManager } from "../ModuleManager";
+import { NodeHandler } from "../NodeHandler";
+import { ObjectUtils } from "../Utils/index";
+import { IMessage, IConfigMessage } from "./Message";
 
 export class Worker {
     constructor(application: Application, clusterLogger: ILogger, appLogger: ILogger) {
@@ -20,17 +21,18 @@ export class Worker {
     private clusterLogger: ILogger;
     private appLogger: ILogger;
 
-    async run() {
-        process.on('message', data => {
+    async run(): Promise<void> {
+        process.on("message", data => {
             this.messageReceived(data);
         });
-        process.send({ type: 'online' });
+        process.send({ type: "online" });
     }
 
-    private messageReceived(message: any) {
-        switch (message['type']) {
-            case 'config':
-                this.application.reloadConfigs(message['config']);
+    private messageReceived(message: IMessage): void {
+        switch (message.type) {
+            case "config":
+                let configMessage: IConfigMessage = <IConfigMessage>message;
+                this.application.reloadConfigs(configMessage.config);
                 break;
             default:
                 break;

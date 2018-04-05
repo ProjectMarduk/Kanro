@@ -1,6 +1,6 @@
 import { ExceptionHandler } from "../Core";
-import { IRequest, IResponse, JsonResponseBody } from "../Http";
 import { HttpException } from "../Exceptions";
+import { IRequest, IResponse, JsonResponseBody } from "../Http";
 
 export class HttpExceptionRenderer extends ExceptionHandler {
     async handler(err: Error, request: IRequest, response: IResponse): Promise<IResponse> {
@@ -9,7 +9,7 @@ export class HttpExceptionRenderer extends ExceptionHandler {
         } else {
             let kanroHttpException: HttpException = <any>err;
 
-            let response = request.respond();
+            let response: IResponse = request.respond();
             response.status = kanroHttpException.status;
             response.body = new JsonResponseBody({ code: response.status, message: kanroHttpException.message });
             return response;

@@ -1,6 +1,6 @@
 /**
  * HTTP header structure.
- * 
+ *
  * @export
  * @interface IHttpHeader
  */

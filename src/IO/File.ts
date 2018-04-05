@@ -1,6 +1,6 @@
-import { AsyncUtils } from "../Utils";
 import * as FileModule from "fs";
 import * as Path from "path";
+import { AsyncUtils } from "../Utils";
 
 export class File {
     static async unlink(path: string | Buffer): Promise<void> {
@@ -16,7 +16,7 @@ export class File {
     }
 
     static async readJson(path: string): Promise<object> {
-        let data = await AsyncUtils.promise<Buffer>(FileModule.readFile, undefined, path);
+        let data: Buffer = await AsyncUtils.promise<Buffer>(FileModule.readFile, undefined, path);
         return JSON.parse(data.toString());
     }
 
@@ -32,7 +32,7 @@ export class File {
         return await AsyncUtils.promise<void>(FileModule.symlink, undefined, path, target, type);
     }
 
-    static async createDir(path: string) {
+    static async createDir(path: string): Promise<void> {
         if (await File.exists(path)) {
             return;
         }
@@ -41,7 +41,7 @@ export class File {
         await AsyncUtils.promise<void>(FileModule.mkdir, undefined, path);
     }
 
-    static createDirSync(path: string) {
+    static createDirSync(path: string): void {
         if (FileModule.existsSync(path)) {
             return;
         }

@@ -1,11 +1,11 @@
-import { ObjectUtils } from "../Utils"
 import * as Http from "http";
+import { IHttpHeader } from "./IHttpHeader";
+import { IHttpParam } from "./IHttpParam";
 import { INodeContainer, Node } from "../Core";
 import { IRequest } from "./IRequest";
-import { IHttpParam } from "./IHttpParam";
-import { IHttpHeader } from "./IHttpHeader";
-import { IUrlQuery } from "./IUrlQuery";
 import { IResponse } from "./IResponse";
+import { IUrlQuery } from "./IUrlQuery";
+import { ObjectUtils } from "../Utils";
 import { Response } from "./Response";
 
 export class RequestMirror implements IRequest {
@@ -29,7 +29,7 @@ export class RequestMirror implements IRequest {
         return new RequestMirror(this);
     }
     respond(): IResponse {
-        if (this.$response == undefined) {
+        if (this.$response == null) {
             this.$response = new Response(this);
         }
 
@@ -37,12 +37,13 @@ export class RequestMirror implements IRequest {
     }
 
     constructor(request: IRequest) {
-        for (var key in request) {
-            if (key.startsWith("$") || key == "meta" || typeof request[key] == "function") {
-                break;
+        for (let key in request) {
+            if(request.hasOwnProperty(key)) {
+                if (key.startsWith("$") || key === "meta" || typeof request[key] === "function") {
+                    break;
+                }
+                this[key] = ObjectUtils.copy(request[key]);
             }
-
-            this[key] = ObjectUtils.copy(request[key]);
         }
 
         this.traceStack = [].concat(request.traceStack);

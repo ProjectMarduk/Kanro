@@ -1,16 +1,16 @@
 export class AsyncUtils {
-    static async promise<T>(func: Function, thisArg: any = undefined, ...args: any[]): Promise<T> {
+    static async promise<T>(func: Function, thisArg?: any, ...args: any[]): Promise<T> {
         return new Promise<T>((res, rej) => {
-            let callback = function () {
-                let result = undefined;
+            let callback: () => void = function (): void {
+                let result: any;
 
                 for (let index in arguments) {
-                    if (arguments[index] != undefined) {
-                        if (typeof arguments[index].stack == "string") {
+                    if (arguments[index] != null) {
+                        if (typeof arguments[index].stack === "string") {
                             rej(arguments[index]);
                             return;
                         } else {
-                            if (result == undefined) {
+                            if (result == null) {
                                 result = {};
                             }
                             result[index] = arguments[index];
@@ -18,14 +18,14 @@ export class AsyncUtils {
                     }
                 }
 
-                if (Object.keys(result).length == 1) {
+                if (Object.keys(result).length === 1) {
                     result = result[Object.keys(result)[0]];
                 }
 
                 res(result);
-            }
+            };
 
-            if (args == undefined) {
+            if (args == null) {
                 args = [];
             }
             args.push(callback);

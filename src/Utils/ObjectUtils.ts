@@ -7,17 +7,17 @@ export class ObjectUtils {
         return JSON.parse(JSON.stringify(object));
     }
 
-    static isEmptyObject(obj) {
+    static isEmptyObject(obj: any): boolean {
         return !Object.keys(obj).length;
     }
 
-    static getValueFormKeys(object, ...keys: (string | number)[]) {
-        if(object == undefined){
+    static getValueFormKeys(object: any, ...keys: PropertyKey[]): any {
+        if (object == null) {
             return undefined;
         }
 
         for (let key of keys) {
-            if (object[key] == undefined) {
+            if (object[key] == null) {
                 return undefined;
             }
 
@@ -27,11 +27,11 @@ export class ObjectUtils {
         return object;
     }
 
-    static setValueFormKeys(object, value, ...keys: (string | number)[]) {
-        for (var index = 0; index < keys.length - 1; index++) {
-            var key = keys[index];
+    static setValueFormKeys(object: any, value: any, ...keys: PropertyKey[]): void {
+        for (let index: number = 0; index < keys.length - 1; index++) {
+            let key: PropertyKey = keys[index];
 
-            if (object[key] == undefined) {
+            if (object[key] == null) {
                 object[key] = {};
             }
 

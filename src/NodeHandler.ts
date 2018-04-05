@@ -1,10 +1,20 @@
-import { INodeContainer, Node, RequestHandler, RequestDiverter, RequestReplicator, Responder, ResponseHandler, ExceptionHandler, Fuse } from "./Core/index";
-import { UnexpectedNodeException } from "./Exceptions/UnexpectedNodeException";
+import {
+    ExceptionHandler,
+    Fuse,
+    INodeContainer,
+    Node,
+    RequestDiverter,
+    RequestHandler,
+    RequestReplicator,
+    Responder,
+    ResponseHandler
+} from "./Core/index";
+import { IRequest, RequestContext } from "./Http";
 import { NonstandardNodeException } from "./Exceptions/index";
-import { RequestContext } from "./Http";
+import { UnexpectedNodeException } from "./Exceptions/UnexpectedNodeException";
 
 export async function NodeHandler(context: RequestContext, container: INodeContainer<Node>): Promise<RequestContext> {
-    if (container == undefined) {
+    if (container == null) {
         return context;
     }
 
@@ -16,55 +26,48 @@ export async function NodeHandler(context: RequestContext, container: INodeConta
         if (container.instance instanceof RequestHandler) {
             context.request = <any>await container.instance.handler(context.request);
             next = <INodeContainer<Node>>container.next;
-        }
-        else if (container.instance instanceof RequestDiverter) {
+        } else if (container.instance instanceof RequestDiverter) {
             next = await container.instance.shunt(context.request, <INodeContainer<Node>[]>container.next);
-        }
-        else if (container.instance instanceof RequestReplicator) {
-            let nextNodeContainers = <INodeContainer<Node>[]>container.next;
+        } else if (container.instance instanceof RequestReplicator) {
+            let nextNodeContainers: INodeContainer<Node>[] = <INodeContainer<Node>[]>container.next;
 
-            let nodes = nextNodeContainers.map((c) => c.instance);
-            if (nextNodeContainers.length == 0) {
+            let nodes: Node[] = nextNodeContainers.map((c) => c.instance);
+            if (nextNodeContainers.length === 0) {
                 throw new UnexpectedNodeException(container);
             }
 
-            let requests = await container.instance.copy(context.request, nextNodeContainers.length);
+            let requests: IRequest[] = await container.instance.copy(context.request, nextNodeContainers.length);
 
-            if (nextNodeContainers.length != requests.length) {
+            if (nextNodeContainers.length !== requests.length) {
                 throw new NonstandardNodeException(container);
             }
 
             requests.forEach((v, i, a) => {
-                if (i == 0) {
+                if (i === 0) {
                     context.request = <any>v;
-                }
-                else {
+                } else {
                     NodeHandler(context.fork(<any>v, undefined), nextNodeContainers[i]);
                 }
             });
 
             next = nextNodeContainers[0];
-        }
-        else if (container.instance instanceof Responder) {
+        } else if (container.instance instanceof Responder) {
             context.response = <any>await container.instance.respond(context.request);
             next = <INodeContainer<Node>>container.next;
-        }
-        else if (container.instance instanceof ResponseHandler) {
+        } else if (container.instance instanceof ResponseHandler) {
             context.response = await container.instance.handler(context.response);
             next = <INodeContainer<Node>>container.next;
-        }
-        else if (container.instance instanceof ExceptionHandler) {
-            let res = <any>await container.instance.handler(context.error, context.request, context.response);
-            if (res == undefined) {
-                return undefined;
+        } else if (container.instance instanceof ExceptionHandler) {
+            let res: any = <any>await container.instance.handler(context.error, context.request, context.response);
+            if (res == null) {
+                return null;
             }
             context.response = res;
             next = <INodeContainer<Node>>container.next;
-        }
-        else if (container.instance instanceof Fuse) {
-            let req = <any>await container.instance.fusing(context.error, context.request);
-            if (req == undefined) {
-                return undefined;
+        } else if (container.instance instanceof Fuse) {
+            let req: any = <any>await container.instance.fusing(context.error, context.request);
+            if (req == null) {
+                return null;
             }
             context.request = req;
             next = <INodeContainer<Node>>container.next;
@@ -74,11 +77,11 @@ export async function NodeHandler(context: RequestContext, container: INodeConta
     } catch (error) {
         context.error = error;
 
-        if (container.fuses != undefined) {
+        if (container.fuses != null) {
             for (let fuse of container.fuses) {
                 try {
-                    let result = await NodeHandler(context, fuse);
-                    if (result != undefined) {
+                    let result: RequestContext = await NodeHandler(context, fuse);
+                    if (result != null) {
                         return result;
                     }
                 } catch (error) {
@@ -87,11 +90,11 @@ export async function NodeHandler(context: RequestContext, container: INodeConta
             }
         }
 
-        if (container.exceptionHandlers != undefined) {
+        if (container.exceptionHandlers != null) {
             for (let exceptionHandler of container.exceptionHandlers) {
                 try {
-                    let result = await NodeHandler(context, exceptionHandler);
-                    if (result != undefined) {
+                    let result: RequestContext = await NodeHandler(context, exceptionHandler);
+                    if (result != null) {
                         return result;
                     }
                 } catch (error) {

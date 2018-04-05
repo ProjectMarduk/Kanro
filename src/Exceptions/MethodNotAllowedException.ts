@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class MethodNotAllowedException extends HttpException {
-    public name: string = "Error.Kanro.Http.MethodNotAllowed";
+    name: string = "Error.Kanro.Http.MethodNotAllowed";
 
-    constructor(message: string = "Method Not Allowed", innerException: Error = undefined) {
+    constructor(message: string = "Method Not Allowed", innerException?: Error) {
         super(405, message, innerException);
     }
 }

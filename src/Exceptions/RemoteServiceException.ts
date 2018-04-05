@@ -1,9 +1,9 @@
 import { KanroException } from "./KanroException";
 
 export class RemoteServiceException extends KanroException {
-    public name: string = "Error.Kanro.RemoteService";
+    name: string = "Error.Kanro.RemoteService";
 
-    constructor(operation: string, innerException: Error = undefined) {
+    constructor(operation: string, innerException?: Error) {
         super(`Local only operation(${operation}) for remote service.`, innerException);
     }
 }

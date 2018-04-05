@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class NotFoundException extends HttpException {
-    public name: string = "Error.Kanro.Http.NotFound";
+    name: string = "Error.Kanro.Http.NotFound";
 
-    constructor(message: string = "Not Found", innerException: Error = undefined) {
+    constructor(message: string = "Not Found", innerException?: Error) {
         super(404, message, innerException);
     }
 }

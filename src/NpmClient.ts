@@ -1,11 +1,11 @@
-import * as Npm from 'npm';
-import { LoggerManager } from "./LoggerManager";
-import { Colors, Style, AnsiStyle, ILogger } from "./Logging";
+import * as Npm from "npm";
+import { AnsiStyle, Colors, ILogger, Style } from "./Logging";
 import { AsyncUtils } from "./Utils";
 import { File, Path } from "./IO";
-import { Service, IModuleInfo } from './Core';
-import { KanroInternalModule } from './KanroInternalModule';
-import { IAppConfig } from './IAppConfig';
+import { IAppConfig } from "./IAppConfig";
+import { IModuleInfo, Service } from "./Core";
+import { KanroInternalModule } from "./KanroInternalModule";
+import { LoggerManager } from "./LoggerManager";
 
 export class NpmClient extends Service {
     dependencies = {
@@ -13,37 +13,36 @@ export class NpmClient extends Service {
             name: LoggerManager.name,
             module: KanroInternalModule.moduleInfo
         }
-    }
+    };
 
-    constructor(){
+    constructor() {
         super(undefined);
     }
 
-    private npmLogger : ILogger
+    private npmLogger: ILogger;
 
-    public get isProxable(){
-        return false;
-    }
+    readonly isProxable: boolean = false;
 
-    public async install(name: String, version: String = '*'): Promise<any> {
-        let moduleId = `${name}@${version}`;
+    async install(name: String, version: String = "*"): Promise<any> {
+        let moduleId: string = `${name}@${version}`;
 
         try {
             this.npmLogger.info(`Module '${moduleId}' installing...`);
-            let installResult = await AsyncUtils.promise<string[]>(Npm.commands.install, Npm, [`${moduleId}`, ' --quiet']);
-            let data = installResult[0].split("@");
-            let moduleName = data[0];
-            let moduleVersion = data[1];
+            let installResult: string[] = await AsyncUtils.promise<string[]>(Npm.commands.install, Npm, [`${moduleId}`, " --quiet"]);
+            let data: string[] = installResult[0].split("@");
+            let moduleName: string = data[0];
+            let moduleVersion: string = data[1];
+            // tslint:disable-next-line:max-line-length
             this.npmLogger.success(Style`NPM install module '${AnsiStyle.create().foreground(Colors.magenta)}${`${moduleName}@${moduleVersion}`}' success.`);
-            let newPath = `${Path.parse(installResult[1]).dir}/.${moduleVersion}@${moduleName}`;
+            let newPath: string = `${Path.parse(installResult[1]).dir}/.${moduleVersion}@${moduleName}`;
 
             if (await File.exists(newPath)) {
                 await File.unlink(newPath);
             }
             await File.rename(installResult[1], newPath);
 
-            if(version == "*"){
-                await File.symlink(newPath, `${Path.parse(installResult[1]).dir}/${moduleName}`, 'dir');
+            if (version === "*") {
+                await File.symlink(newPath, `${Path.parse(installResult[1]).dir}/${moduleName}`, "dir");
             }
 
             return require(`.${moduleVersion}@${moduleName}`);
@@ -52,14 +51,14 @@ export class NpmClient extends Service {
         }
     }
 
-    public async initialize(npmConfig: IAppConfig): Promise<void> {
+    async initialize(npmConfig: IAppConfig): Promise<void> {
         try {
             await AsyncUtils.promise(Npm.load, Npm, npmConfig);
-            if (npmConfig.registry != undefined) {
+            if (npmConfig.registry != null) {
                 this.npmLogger.info(`Set NPM registry to '${npmConfig.registry}'.`);
             }
 
-            Npm.on('log', message => {
+            Npm.on("log", message => {
                 this.npmLogger.info(message);
             });
         } catch (error) {
@@ -67,7 +66,8 @@ export class NpmClient extends Service {
         }
     }
 
-    async onLoaded(): Promise<void>{
-        this.npmLogger = this.getDependedService<LoggerManager>("loggerManager").registerLogger("NPM", AnsiStyle.create().foreground(Colors.cyan));
+    async onLoaded(): Promise<void> {
+        this.npmLogger = await (await this.getDependedService<LoggerManager>("loggerManager"))
+            .registerLogger("NPM", AnsiStyle.create().foreground(Colors.cyan));
     }
 }

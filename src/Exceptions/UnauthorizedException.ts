@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class UnauthorizedException extends HttpException {
-    public name: string = "Error.Kanro.Http.Unauthorized";
+    name: string = "Error.Kanro.Http.Unauthorized";
 
-    constructor(message: string = "Unauthorized", innerException: Error = undefined) {
+    constructor(message: string = "Unauthorized", innerException?: Error) {
         super(401, message, innerException);
     }
 }

@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class ServiceUnavailableException extends HttpException {
-    public name: string = "Error.Kanro.Http.ServiceUnavailable";
+    name: string = "Error.Kanro.Http.ServiceUnavailable";
 
-    constructor(message: string = "Service Unavailable", innerException: Error = undefined) {
+    constructor(message: string = "Service Unavailable", innerException?: Error) {
         super(503, message, innerException);
     }
 }

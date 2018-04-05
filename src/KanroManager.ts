@@ -1,9 +1,9 @@
-import { Service, IModuleInfo } from "./Core";
-import { IAppConfig } from "./IAppConfig";
-import { Logger, Colors, AnsiStyle, ILogger } from "./Logging";
-import { LoggerManager } from "./LoggerManager";
+import { AnsiStyle, Colors, ILogger, Logger } from "./Logging";
 import { Application } from "./Application";
+import { IAppConfig } from "./IAppConfig";
+import { IModuleInfo, Service } from "./Core";
 import { KanroInternalModule } from "./KanroInternalModule";
+import { LoggerManager } from "./LoggerManager";
 
 export class KanroManager extends Service {
     dependencies = {
@@ -15,25 +15,22 @@ export class KanroManager extends Service {
             name: Application.name,
             module: KanroInternalModule.moduleInfo
         }
-    }
+    };
 
-    public get isProxable(){
-        return false;
-    }
-
-    constructor() {
-        super(undefined);
-    }
+    readonly isProxable: boolean = false;
+    private application: Application;
+    private loggerManager: LoggerManager;
 
     async onLoaded(): Promise<void> {
-        this.getDependedService<LoggerManager>("loggerManager");
+        this.application = await this.getDependedService<Application>("application");
+        this.loggerManager = await this.getDependedService<LoggerManager>("loggerManager");
     }
 
-    public getKanroConfig(name: string): any{
-        return this.getDependedService<Application>("application").config[name];
+    async getKanroConfig(name: string): Promise<any> {
+        return this.application.config[name];
     }
 
-    public registerLogger(namespace: string, style?: AnsiStyle): ILogger{
-        return this.getDependedService<LoggerManager>("loggerManager").registerLogger(namespace, style);
+    async registerLogger(namespace: string, style?: AnsiStyle): Promise<ILogger> {
+        return this.loggerManager.registerLogger(namespace, style);
     }
 }

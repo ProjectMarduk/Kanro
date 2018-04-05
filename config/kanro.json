@@ -4,7 +4,7 @@
     "registry": "http://localhost:4873",
     "resource": "./resource",
     "entryPoint": {
-        "name": "Router",
+        "name": "UrlRouter",
         "module": {
             "name": "kanro",
             "version": "*"
@@ -41,9 +41,25 @@
             }
         },
         "/remote": {
-            "name": "ServiceProxy",
+            "name": "RemoteServiceHolder",
             "module": {
                 "name": "kanro",
+                "version": "*"
+            },
+            "dependencies": {
+                "target": {
+                    "name": "TestService",
+                    "module": {
+                        "name": "test",
+                        "version": "*"
+                    }
+                }
+            }
+        },
+        "/test": {
+            "name": "TestResponder",
+            "module": {
+                "name": "test",
                 "version": "*"
             },
             "dependencies": {

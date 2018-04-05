@@ -1,18 +1,18 @@
-import { Responder, INodeContainer, IModuleInfo } from "../Core";
 import { File } from "../IO";
-import { IRequest, IResponse, JsonResponseBody, Request, FileResponseBody } from "../Http";
-import { NotFoundException } from "../Exceptions";
+import { FileResponseBody, IRequest, IResponse, JsonResponseBody, Request } from "../Http";
+import { IModuleInfo, INodeContainer, Responder } from "../Core";
 import { KanroManager } from "..";
 import { KanroModule } from "../KanroModule";
+import { NotFoundException } from "../Exceptions";
 
-export interface FileRendererContainer extends INodeContainer<FileRenderer> {
+export interface IFileRendererContainer extends INodeContainer<FileRenderer> {
     resource: string;
 }
 
 export class FileRenderer extends Responder {
     async respond(request: IRequest): Promise<IResponse> {
-        let response = request.respond();
-        let path = `${this.resource}/${request.relativeUrl}`;
+        let response: IResponse = request.respond();
+        let path: string = `${this.resource}/${request.relativeUrl}`;
 
         if (await File.exists(path)) {
             response.body = new FileResponseBody(path);
@@ -25,9 +25,9 @@ export class FileRenderer extends Responder {
     dependencies = { kanroManager: { name: KanroManager.name, module: KanroModule.moduleInfo } };
     resource: string;
 
-    constructor(config: FileRendererContainer) {
+    constructor(config: IFileRendererContainer) {
         super(config);
-        if (config.resource != undefined) {
+        if (config.resource != null) {
             if ((<string>config.resource).startsWith(".")) {
                 this.resource = `${process.cwd()}/${config.resource}`;
             } else {
@@ -36,12 +36,12 @@ export class FileRenderer extends Responder {
         }
     }
 
-    async onLoaded() {
-        if(this.resource == undefined){
-            this.resource = this.getDependedService<KanroManager>("kanroManager").getKanroConfig('resource');
+    async onLoaded(): Promise<void> {
+        if (this.resource == null) {
+            this.resource = await (await this.getDependedService<KanroManager>("kanroManager")).getKanroConfig("resource");
         }
 
-        if(this.resource == undefined){
+        if (this.resource == null) {
             this.resource = process.cwd();
         }
     }

@@ -9,47 +9,49 @@ export interface IHttpRequestHandler {
 export class Server {
     private httpServer: Http.Server;
     private handler: (request: Http.IncomingMessage, response: Http.ServerResponse) => Promise<void>;
-    private eventHandler: (name, error) => Promise<void>;
+    private eventHandler: (name: string, error: any) => Promise<void>;
     private port: number;
 
-    constructor(port: number, handler: (request: Http.IncomingMessage, response: Http.ServerResponse) => Promise<void>, eventHandler: (name, error) => Promise<void>) {
+    constructor(port: number, handler: (request: Http.IncomingMessage, response: Http.ServerResponse) => Promise<void>,
+        eventHandler: (name: string, error: any) => Promise<void>) {
         this.port = port;
         this.handler = handler;
         this.eventHandler = eventHandler;
     }
 
-    async startListen() {
+    async startListen(): Promise<void> {
         await new Promise<void>((res, rej) => {
             this.httpServer = Http.createServer(async (request, response) => {
                 this.entryPoint(request, response);
             });
-            this.httpServer.on('error', async (err) => {
+            this.httpServer.on("error", async (err) => {
                 await this.eventHandler("error", err);
             });
-            this.httpServer.on('listening', async (err) => {
+            this.httpServer.on("listening", async (err) => {
                 await this.eventHandler("listening", err);
                 res();
             });
-            this.httpServer.on('close', async (err) => {
+            this.httpServer.on("close", async (err) => {
                 await this.eventHandler("close", err);
             });
             this.httpServer.listen(this.port);
         });
     }
 
-    hotSwap(handler: (request: Http.IncomingMessage, response: Http.ServerResponse) => Promise<void>, eventHandler: (name, error) => Promise<void>) {
+    hotSwap(handler: (request: Http.IncomingMessage, response: Http.ServerResponse) => Promise<void>,
+        eventHandler: (name: string, error: any) => Promise<void>): void {
         this.handler = handler;
         this.eventHandler = eventHandler;
     }
 
-    private async entryPoint(request: Http.IncomingMessage, response: Http.ServerResponse) {
+    private async entryPoint(request: Http.IncomingMessage, response: Http.ServerResponse): Promise<void> {
         if (this.handler != null) {
             await this.handler(request, response);
         }
         response.end();
     }
 
-    close(){
+    close(): void {
         this.httpServer.close();
     }
 }

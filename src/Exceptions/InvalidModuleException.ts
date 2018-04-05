@@ -1,12 +1,12 @@
 import { KanroException } from "./KanroException";
 
 export class InvalidModuleException extends KanroException {
-    public name: string = "Error.Kanro.Module.Invalid";
-    public module = undefined;
+    name: string = "Error.Kanro.Module.Invalid";
+    module = undefined;
 
-    constructor(module: any, message: string = "Invalid Kanro module.", innerException: Error = undefined) {
+    constructor(module: any, message: string = "Invalid Kanro module.", innerException?: Error) {
         super(message, innerException);
-        if (module == undefined) {
+        if (module == null) {
             this.message = "Kanro module not found";
         }
         this.module = module;

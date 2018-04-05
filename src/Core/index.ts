@@ -6,7 +6,6 @@ export * from "./RequestHandler";
 export * from "./RequestReplicator";
 export * from "./Responder";
 export * from "./ResponseHandler";
-export * from "./Service";
 export * from "./Module";
 export * from "./IModuleInfo";
 export * from "./INodeContainer";

@@ -1,11 +1,10 @@
-import { ObjectUtils } from "../Utils"
-
 import * as Http from "http";
-import { INodeContainer, Node } from "../Core";
-import { IResponse } from "./IResponse";
-import { IRequest } from "./IRequest";
 import { IHttpHeader } from "./IHttpHeader";
+import { INodeContainer, Node } from "../Core";
+import { IRequest } from "./IRequest";
+import { IResponse } from "./IResponse";
 import { IResponseBody } from "./IResponseBody";
+import { ObjectUtils } from "../Utils";
 
 export class Response implements IResponse {
     meta: Http.ServerResponse;
@@ -16,6 +15,7 @@ export class Response implements IResponse {
     traceStack: INodeContainer<Node>[];
 
     constructor(request: IRequest) {
+        // tslint:disable-next-line:no-string-literal
         this.meta = request["$responseMeta"];
         this.request = request;
         this.status = 200;

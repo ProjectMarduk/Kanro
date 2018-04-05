@@ -1,10 +1,10 @@
-import { Module, INodeContainer, Node, IModuleInfo } from "./Core";
 import { Application } from "./Application";
-import { NpmClient } from "./NpmClient";
-import { ModuleManager } from "./ModuleManager";
-import { LoggerManager } from "./LoggerManager";
 import { ConfigBuilder } from "./ConfigBuilder";
 import { HttpServer } from "./HttpServer";
+import { IModuleInfo, INodeContainer, Module, Node } from "./Core";
+import { LoggerManager } from "./LoggerManager";
+import { ModuleManager } from "./ModuleManager";
+import { NpmClient } from "./NpmClient";
 
 export class KanroInternalModule extends Module {
     application: Application;
@@ -15,13 +15,24 @@ export class KanroInternalModule extends Module {
     httpServer: HttpServer;
 
     constructor(application: Application) {
-        super()
+        super();
         this.application = application;
         this.npmClient = new NpmClient();
         this.moduleManager = new ModuleManager();
         this.loggerManager = new LoggerManager();
         this.configBuilder = new ConfigBuilder();
         this.httpServer = new HttpServer();
+    }
+
+    get nodes(): Array<string> {
+        return [
+            Application.name,
+            NpmClient.name,
+            HttpServer.name,
+            ModuleManager.name,
+            LoggerManager.name,
+            ConfigBuilder.name,
+        ];
     }
 
     async getNode(container: INodeContainer<Node>): Promise<Node> {
@@ -46,5 +57,5 @@ export class KanroInternalModule extends Module {
     static moduleInfo: IModuleInfo = {
         name: "kanro.internal",
         version: "*"
-    }
+    };
 }

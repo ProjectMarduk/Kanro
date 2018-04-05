@@ -28,6 +28,9 @@
     ],
     "vsicons.presets.angular": false,
     "cSpell.words": [
-        "Proxable"
-    ]
+        "Proxable",
+        "Remoting"
+    ],
+    "typescript.extension.sortImports.quoteStyle": "double",
+    "typescript.extension.sortImports.maxNamedImportsInSingleLine": 6
 }

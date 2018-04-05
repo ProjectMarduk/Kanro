@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class GatewayTimeoutException extends HttpException {
-    public name: string = "Error.Kanro.Http.GatewayTimeout";
+    name: string = "Error.Kanro.Http.GatewayTimeout";
 
-    constructor(message: string = "Gateway Timeout", innerException: Error = undefined) {
+    constructor(message: string = "Gateway Timeout", innerException?: Error) {
         super(504, message, innerException);
     }
 }

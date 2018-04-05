@@ -1,12 +1,12 @@
 import { KanroException } from "./KanroException";
 
 export class InvalidNodeException extends KanroException {
-    public name: string = "Error.Kanro.Node.Invalid";
-    public node = undefined;
+    name: string = "Error.Kanro.Node.Invalid";
+    node = undefined;
 
-    constructor(node: any, message: string = "Invalid Kanro node.", innerException: Error = undefined) {
+    constructor(node: any, message: string = "Invalid Kanro node.", innerException?: Error) {
         super(message, innerException);
-        if (node == undefined) {
+        if (node == null) {
             this.message = "Kanro node not found";
         }
         this.node = node;

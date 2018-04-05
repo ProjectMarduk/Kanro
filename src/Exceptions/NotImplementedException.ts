@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class NotImplementedException extends HttpException {
-    public name: string = "Error.Kanro.Http.NotImplemented";
+    name: string = "Error.Kanro.Http.NotImplemented";
 
-    constructor(message: string = "Not Implemented", innerException: Error = undefined) {
+    constructor(message: string = "Not Implemented", innerException?: Error) {
         super(501, message, innerException);
     }
 }

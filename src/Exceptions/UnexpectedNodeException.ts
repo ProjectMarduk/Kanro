@@ -5,7 +5,7 @@ export class UnexpectedNodeException extends KanroException {
     name: string = "Error.Kanro.Node.Unexpected";
     node: INodeContainer<Node>;
 
-    constructor(node: INodeContainer<Node>, message: string = "Unexpected input or output node be provided.", innerException: Error = undefined) {
+    constructor(node: INodeContainer<Node>, message: string = "Unexpected input or output node be provided.", innerException?: Error) {
         super(message, innerException);
         this.node = node;
     }

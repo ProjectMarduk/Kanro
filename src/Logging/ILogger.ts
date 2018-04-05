@@ -1,6 +1,6 @@
 export interface ILogger {
-    info(message: string);
-    error(message: string);
-    success(message: string);
-    warning(message: string);
+    info(message: string): void;
+    error(message: string): void;
+    success(message: string): void;
+    warning(message: string): void;
 }

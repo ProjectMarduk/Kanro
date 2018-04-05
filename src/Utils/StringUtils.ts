@@ -1,12 +1,12 @@
 export class StringUtils {
     static routerPathSplit(path: string): string[] {
         let result: string[] = [];
-        let current = "";
+        let current: string = "";
         if (!path.endsWith("/")) {
             path += "/";
         }
 
-        let regex = 0;
+        let regex: number = 0;
         for (let char of path) {
             switch (char) {
                 case "/":
@@ -14,7 +14,7 @@ export class StringUtils {
                         current += char;
                         break;
                     }
-                    if (current != undefined && current != "") {
+                    if (current != null && current !== "") {
                         result.push(current);
                         current = "";
                     }
@@ -36,10 +36,10 @@ export class StringUtils {
         return result;
     }
 
-    static rightPad(str, len, ch) {
+    static rightPad(str: string, len: number, ch: string): string {
         str = "" + str;
         ch = ("" + ch) || " ";
-        let padLen = len - str.length;
+        let padLen: number = len - str.length;
         if (padLen <= 0) {
             return str;
         } else {
@@ -47,10 +47,10 @@ export class StringUtils {
         }
     }
 
-    static leftPad(str, len, ch) {
+    static leftPad(str: string, len: number, ch: string): string {
         str = "" + str;
         ch = ("" + ch) || " ";
-        let padLen = len - str.length;
+        let padLen: number = len - str.length;
         if (padLen <= 0) {
             return str;
         } else {
@@ -58,21 +58,20 @@ export class StringUtils {
         }
     }
 
-    static toString(obj: any) {
-        if (obj == undefined) {
-            return new String(obj);
+    static toString(obj: any): string {
+        if (obj === null) {
+            return "null";
         }
 
-        if (typeof obj['toString'] == 'function') {
-            return obj.toString();
+        if (obj === undefined) {
+            return "undefined";
         }
-        else {
-            return new String(obj);
-        }
+
+        return obj.toString();
     }
 
     static removeStyling(str: string): string {
-        let result = str.replace(/\[[0-9]+m/g, "");
+        let result: string = str.replace(/\[[0-9]+m/g, "");
         return result;
     }
 }

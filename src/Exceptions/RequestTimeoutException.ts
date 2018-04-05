@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class RequestTimeoutException extends HttpException {
-    public name: string = "Error.Kanro.Http.RequestTimeout";
+    name: string = "Error.Kanro.Http.RequestTimeout";
 
-    constructor(message: string = "Request Timeout", innerException: Error = undefined) {
+    constructor(message: string = "Request Timeout", innerException?: Error) {
         super(408, message, innerException);
     }
 }

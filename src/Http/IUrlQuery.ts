@@ -1,6 +1,6 @@
 /**
  * Url query structure.
- * 
+ *
  * @export
  * @interface IUrlQuery
  */

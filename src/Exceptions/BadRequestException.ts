@@ -1,9 +1,9 @@
 import { HttpException } from "./HttpException";
 
 export class BadRequestException extends HttpException {
-    public name: string = "Error.Kanro.Http.BadRequest";
+    name: string = "Error.Kanro.Http.BadRequest";
 
-    constructor(message: string = "Bad Request", innerException: Error = undefined) {
+    constructor(message: string = "Bad Request", innerException?: Error) {
         super(400, message, innerException);
     }
 }

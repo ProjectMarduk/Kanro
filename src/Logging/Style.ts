@@ -1,18 +1,18 @@
 import { AnsiStyle } from "./AnsiStyle";
 import { StringUtils } from "../Utils";
 
-export function Style(stringArray: TemplateStringsArray, ...values: any[]) {
-    let result = [];
+export function Style(stringArray: TemplateStringsArray, ...values: any[]): string {
+    let result: string[] = [];
 
-    let strings = stringArray.slice(0);
-    let index = 0;
+    let strings: string[] = stringArray.slice(0);
+    let index: number = 0;
 
     for (index = 0; index < values.length; index++) {
-        var element = values[index];
+        let element: any = values[index];
 
         result.push(strings[index]);
         if (element instanceof AnsiStyle) {
-            if (strings[index + 1].length == 0) {
+            if (strings[index + 1].length === 0) {
                 if (index + 1 < values.length) {
                     result.push(element.styling(StringUtils.toString(values[index + 1])));
                     index += 1;
@@ -25,5 +25,5 @@ export function Style(stringArray: TemplateStringsArray, ...values: any[]) {
     }
 
     result.push(strings.pop());
-    return result.join('');
+    return result.join("");
 }

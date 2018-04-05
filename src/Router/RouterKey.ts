@@ -6,38 +6,34 @@ export class RouterKey {
     type: RouterKeyType;
 
     constructor(stringKey: string) {
-        if (stringKey == "*") {
+        if (stringKey === "*") {
             this.key = stringKey;
             this.type = RouterKeyType.Wildcard;
-        }
-        else if (stringKey == "**") {
+        } else if (stringKey === "**") {
             this.key = stringKey;
             this.type = RouterKeyType.Wildcard;
-        }
-        else if (stringKey.startsWith("{") && stringKey.endsWith("}")) {
+        } else if (stringKey.startsWith("{") && stringKey.endsWith("}")) {
             this.type = RouterKeyType.Param;
-            let index = stringKey.indexOf(":")
+            let index: number = stringKey.indexOf(":");
             if (index < 0) {
                 this.key = stringKey.slice(1, stringKey.length - 1);
-            }
-            else {
+            } else {
                 this.key = stringKey.slice(1, index);
                 this.regex = new RegExp(stringKey.slice(index + 1, stringKey.length - 1));
             }
-        }
-        else {
+        } else {
             this.type = RouterKeyType.Path;
             this.key = stringKey;
         }
     }
 
-    match(path: string) {
+    match(path: string): boolean {
         switch (this.type) {
             case RouterKeyType.Wildcard:
                 return true;
             case RouterKeyType.Param:
-                if (path != undefined) {
-                    if (this.regex != undefined) {
+                if (path != null) {
+                    if (this.regex != null) {
                         return this.regex.test(path);
                     } else {
                         return true;
@@ -45,8 +41,8 @@ export class RouterKey {
                 }
                 return false;
             case RouterKeyType.Path:
-                if (path != undefined) {
-                    return path == this.key;
+                if (path != null) {
+                    return path === this.key;
                 }
                 return false;
             default:

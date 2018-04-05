@@ -1,2 +1,0 @@
-C:\Users\higan\Documents\GitHub\Kanro\obj\Debug\Kanro.njsprojResolveAssemblyReference.cache
-C:\Users\higan\Documents\GitHub\Kanro\bin\Microsoft.NodejsTools.WebRole.dll

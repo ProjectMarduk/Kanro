@@ -40,7 +40,7 @@ export class UrlRouter extends RequestDiverter {
         return selectedNode.node;
     }
     node: RouterNode;
-    $preRouters: string;
+    $preRouters: string = "";
     dependencies = { kanroManager: { name: KanroManager.name, module: KanroModule.moduleInfo } };
     container: INodeContainer<RequestDiverter>;
     logger: ILogger;

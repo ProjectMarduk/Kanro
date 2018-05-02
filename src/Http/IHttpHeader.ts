@@ -5,5 +5,5 @@
  * @interface IHttpHeader
  */
 export interface IHttpHeader {
-    [name: string]: string;
+    [name: string]: string | string[];
 }

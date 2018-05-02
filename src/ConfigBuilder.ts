@@ -1,5 +1,5 @@
 import * as Ajv from "Ajv";
-import * as Request from "request";
+import * as Http from "http";
 import { AnsiStyle, Colors, ILogger } from "./Logging";
 import { File, Path } from "./IO";
 import { IAppConfig } from "./IAppConfig";
@@ -34,12 +34,17 @@ export class ConfigBuilder extends Service {
     async initialize(): Promise<void> {
         try {
             let result: any = await new Promise<any>((res, rej) => {
-                Request.get("https://higan.me/schema/1.1/kanro.json", (error, response, body) => {
-                    if (error) {
-                        rej(error);
-                        return;
-                    }
-                    res(body);
+                Http.get("https://higan.me/schema/1.1/kanro.json", response => {
+                    var data = "";
+                    response.on("data", chunk => {
+                        data += chunk;
+                    });
+                    response.on("end", () => {
+                        res(data);
+                    });
+                    response.on("error", err => {
+                        rej(err);
+                    });
                 });
             });
             let schema: any = JSON.parse(result);

@@ -30,7 +30,7 @@ export class Logger implements ILogger {
     error(message: string): void {
         this.log(LoggerUtils.buildLogString(
             this.namespace,
-            LogLevel.info,
+            LogLevel.error,
             message,
             TimeUtils.getTimePassed(CoreLogger.time),
             this.style), LogLevel.error);
@@ -39,7 +39,7 @@ export class Logger implements ILogger {
     success(message: string): void {
         this.log(LoggerUtils.buildLogString(
             this.namespace,
-            LogLevel.info,
+            LogLevel.success,
             message,
             TimeUtils.getTimePassed(CoreLogger.time),
             this.style), LogLevel.success);
@@ -48,7 +48,7 @@ export class Logger implements ILogger {
     warning(message: string): void {
         this.log(LoggerUtils.buildLogString(
             this.namespace,
-            LogLevel.info,
+            LogLevel.warning,
             message,
             TimeUtils.getTimePassed(CoreLogger.time),
             this.style), LogLevel.warning);

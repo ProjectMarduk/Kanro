@@ -29,7 +29,6 @@ class TestResponder extends Kanro.Core.Responder {
     }
 }
 
-
 class TestModule extends Kanro.Core.Module {
     readonly nodes: string[] = [
         TestService.name,

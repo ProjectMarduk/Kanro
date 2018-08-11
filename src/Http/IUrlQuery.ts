@@ -1,9 +1,10 @@
+import { ParsedUrlQuery } from "querystring";
+
 /**
  * Url query structure.
  *
  * @export
  * @interface IUrlQuery
  */
-export interface IUrlQuery {
-    [name: string]: any;
+export interface IUrlQuery extends ParsedUrlQuery {
 }

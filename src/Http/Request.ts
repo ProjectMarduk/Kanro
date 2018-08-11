@@ -45,8 +45,8 @@ export class Request implements IRequest {
         this.meta = httpRequest;
         this.$responseMeta = httpResponse;
 
-        let url: Url.Url = Url.parse(httpRequest.url);
-        this.query = QueryString.parse(url.query);
+        let url: Url.Url = Url.parse(httpRequest.url, true);
+        this.query = <IUrlQuery>url.query;
         this.url = url.pathname;
 
         let skipStart: number = url.pathname.startsWith("/") ? 1 : 0;
